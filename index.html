@@ -46,7 +46,7 @@ h2{font-size:20px;margin:2px 0 4px}h3{font-size:16px;margin:0 0 10px}
 .seg button[aria-pressed=true]{background:var(--teal);color:#fff;font-weight:600}
 .f{margin-bottom:12px}
 .f>label,.lbl{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
-.row2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .in{position:relative}
 .in input,select{width:100%;font:inherit;font-size:16px;padding:10px 44px 10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:44px;font-variant-numeric:tabular-nums}
@@ -54,6 +54,9 @@ select{padding-right:12px}
 .in span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--mut);font-size:13px;pointer-events:none;white-space:nowrap}
 input:focus,select:focus,button:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
 input::placeholder{color:var(--mut);opacity:.45}
+.in.pmw input{padding-right:70px}
+.in .pm{position:absolute;right:32px;top:50%;transform:translateY(-50%);width:32px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;font-size:17px;font-weight:700;line-height:1;cursor:pointer;padding:0}
+.in .pm:active{background:var(--teal2)}
 .datebox{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:12px;background:var(--bg);min-height:48px;overflow:hidden}
 .datebox button{flex:none;width:48px;border:0;background:none;color:var(--teal);font-size:24px;line-height:1;cursor:pointer}
 .datebox button:active{background:var(--teal2)}
@@ -253,7 +256,7 @@ const save=()=>{try{localStorage.setItem(SK,JSON.stringify(store))}catch(e){}};
 
 /* ---------- komponen input ---------- */
 const field=(id,label,unit,ph)=>`<div class="f"><label for="${id}">${label}</label><div class="in"><input id="${id}" inputmode="decimal" placeholder="${ph||''}"><span>${unit}</span></div><div class="err" id="${id}_e"></div></div>`;
-const elevField=(id,label,opt)=>`<div class="f"><label for="${id}">${label}${opt?' <span class="mut">(opsional)</span>':''}</label><div class="row2"><div class="in"><input id="${id}" data-elev="${id}_cm" inputmode="decimal" placeholder="contoh 510.4"><span>mdpl</span></div><div class="in"><input id="${id}_cm" data-cm="${id}" inputmode="decimal" placeholder="atau tinggi"><span>cm</span></div></div><div class="err" id="${id}_e"></div></div>`;
+const elevField=(id,label,opt)=>`<div class="f"><label for="${id}">${label}${opt?' <span class="mut">(opsional)</span>':''}</label><div class="row2"><div class="in"><input id="${id}" data-elev="${id}_cm" inputmode="decimal" placeholder="510.4"><span>mdpl</span></div><div class="in pmw"><input id="${id}_cm" data-cm="${id}" inputmode="decimal" placeholder="0.0"><button type="button" class="pm" data-neg="${id}_cm" aria-label="Ubah tanda plus/minus">±</button><span>cm</span></div></div><div class="err" id="${id}_e"></div></div>`;
 const rainField=(id,s,online)=>`<div class="f"><label for="${id}">${s.n}</label><div class="in"><input id="${id}" inputmode="decimal" placeholder="0.0"><span>mm</span></div>${online?`<label class="chk"><input type="checkbox" id="${id}_on" checked> online</label>`:''}</div>`;
 
 const SHIFT={pagi:[['h_eOldAm','Elevasi pagi kemarin'],['h_eOldPm','Elevasi sore kemarin'],['h_eNewAm','Elevasi pagi hari ini']],
@@ -291,6 +294,10 @@ document.addEventListener('input',e=>{const el=e.target;if(!el.id)return;store[e
 document.addEventListener('change',e=>{const el=e.target;if(!el.id)return;store[el.id]=el.type==='checkbox'?el.checked:el.value;save();
   if(el.type==='date')dateLbl(el.id);
   if(el.id==='p_n'||el.id==='p_date')renderDays();if(el.id==='h_date')loadDay(false);if(el.id==='e_conv'){$('estCoef').hidden=!el.checked;estCalc()}scheduleLive(el)});
+
+/* tombol ± (keyboard angka iPhone tidak punya minus) */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-neg]');if(!b)return;const el=$(b.dataset.neg),v=el.value.trim();
+  el.value=v.startsWith('-')?v.slice(1):'-'+v;el.dispatchEvent(new Event('input',{bubbles:true}));el.focus()});
 
 /* tombol tanggal ‹ › dan segmented */
 document.addEventListener('click',e=>{const b=e.target.closest('[data-step]');if(!b)return;const el=$(b.dataset.for);el.value=addDays(el.value||todayISO(),+b.dataset.step);
