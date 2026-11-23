@@ -53,6 +53,20 @@ h2{font-size:20px;margin:2px 0 4px}h3{font-size:16px;margin:0 0 10px}
 select{padding-right:12px}
 .in span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--mut);font-size:13px;pointer-events:none;white-space:nowrap}
 input:focus,select:focus,button:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+input::placeholder{color:var(--mut);opacity:.45}
+.datebox{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:12px;background:var(--bg);min-height:48px;overflow:hidden}
+.datebox button{flex:none;width:48px;border:0;background:none;color:var(--teal);font-size:24px;line-height:1;cursor:pointer}
+.datebox button:active{background:var(--teal2)}
+.datebox .dv{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-inline:1px solid var(--line);padding:4px 6px;text-align:center}
+.datebox .dv b{font-size:15px;white-space:nowrap}.datebox .dv small{font-size:12px;color:var(--teal);font-weight:600;min-height:14px}
+.datebox input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;-webkit-appearance:none;appearance:none;border:0;padding:0;margin:0;cursor:pointer}
+.seg button:active{filter:brightness(.92)}
+.live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin:-4px 0 8px}.live i{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block}
+@keyframes pop{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}.res.upd{animation:pop .25s ease-out}
+@media(prefers-reduced-motion:reduce){.res.upd{animation:none}}
+.peek{position:fixed;left:12px;right:12px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:7;background:var(--teal);color:#fff;border:0;border-radius:12px;padding:10px 14px;font:inherit;font-size:14px;font-weight:600;display:flex;justify-content:space-between;gap:10px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:pointer;text-align:left}
+.peek[hidden]{display:none}.peek span:last-child{flex:none;opacity:.85}
+@media(min-width:900px){.peek{display:none}}
 input.bad{border-color:var(--err)}input.auto{background:var(--teal2)}input.partial{border-style:dashed;border-color:var(--warn)}
 .err{color:var(--err);font-size:13px;margin-top:3px}
 .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin-top:4px}
@@ -94,10 +108,11 @@ details.day>div{padding:0 14px 12px}
   <div class="card">
     <h2>Laporan Data Hidrologi</h2>
     <p class="sub">Inflow = (ΔStorage + Outflow×86400) / 86400, kurva storage dari APK v3.6.8.</p>
+    <div class="live"><i></i>Hasil dihitung otomatis saat mengetik</div>
     <div class="seg" id="segShift"><button data-v="pagi" aria-pressed="true">Pagi</button><button data-v="sore" aria-pressed="false">Sore</button></div>
-    <div class="row2"><div class="f"><label for="h_date">Tanggal</label><div class="in"><input type="date" id="h_date" style="padding-right:12px"></div></div>
-      <div class="f" id="wrapTime"><label for="h_time">Jam terbit</label><select id="h_time"><option value="6">06:00</option><option value="7">07:00</option></select></div>
-      <div class="f" id="wrapPub" hidden><label for="h_pub">Publikasi</label><select id="h_pub"><option value="int">Internal</option><option value="ext">External</option></select></div></div>
+    <div class="f"><label for="h_date">Tanggal</label><div class="datebox"><button type="button" data-step="-1" data-for="h_date" aria-label="Hari sebelumnya">‹</button><div class="dv"><b id="h_date_lbl">–</b><small id="h_date_rel"></small><input type="date" id="h_date" aria-label="Pilih tanggal"></div><button type="button" data-step="1" data-for="h_date" aria-label="Hari berikutnya">›</button></div></div>
+    <div class="f" id="wrapTime"><span class="lbl">Jam terbit</span><div class="seg" data-input="h_time"><button type="button" data-v="6">06:00</button><button type="button" data-v="7">07:00</button></div><input type="hidden" id="h_time" value="6"></div>
+    <div class="f" id="wrapPub" hidden><span class="lbl">Publikasi</span><div class="seg" data-input="h_pub"><button type="button" data-v="int">Internal</button><button type="button" data-v="ext">External</button></div><input type="hidden" id="h_pub" value="int"></div>
     <div id="hFields"></div>
     <div class="f"><label for="h_out">Outflow Dam rata-rata 24 jam</label><div class="in"><input id="h_out" inputmode="decimal" placeholder="0.00"><span>m³/s</span></div>
       <button class="btn sm" type="button" id="btnEst" style="margin-top:6px">Estimasi Outflow</button></div>
@@ -124,7 +139,8 @@ details.day>div{padding:0 14px 12px}
   <div class="card">
     <h2>Kalkulator Curah Hujan</h2>
     <p class="sub">Rata-rata catchment area metode Thiessen (luas DAS 1754.7 km²). Hilir tidak masuk rata-rata. Hapus centang "online" kalau data stasiun tidak terkirim (ditandai *).</p>
-    <div class="f"><label for="r_date">Tanggal</label><div class="in"><input type="date" id="r_date" style="padding-right:12px"></div></div>
+    <div class="live"><i></i>Hasil dihitung otomatis saat mengetik</div>
+    <div class="f"><label for="r_date">Tanggal</label><div class="datebox"><button type="button" data-step="-1" data-for="r_date" aria-label="Hari sebelumnya">‹</button><div class="dv"><b id="r_date_lbl">–</b><small id="r_date_rel"></small><input type="date" id="r_date" aria-label="Pilih tanggal"></div><button type="button" data-step="1" data-for="r_date" aria-label="Hari berikutnya">›</button></div></div>
     <div class="grp">Catchment Area Danau</div><div class="grid2" id="rCA"></div>
     <div class="grp">Hilir Sungai Poso</div><div class="grid2" id="rHilir"></div>
     <label class="chk" style="margin:8px 0"><input type="checkbox" id="r_join"> Gabung dengan laporan hidrologi pagi (format "Curah Hujan dan Hidrologi")</label>
@@ -142,8 +158,9 @@ details.day>div{padding:0 14px 12px}
   <div class="card">
     <h2>Analisis &amp; Prakiraan</h2>
     <p class="sub">Capacity Outflow dari elevasi (polinomial APK) + prakiraan hujan per stasiun. Hujan bisa diambil otomatis dari BMKG (sekitar 3 hari ke depan).</p>
-    <div class="row2"><div class="f"><label for="p_date">Tanggal mulai</label><div class="in"><input type="date" id="p_date" style="padding-right:12px"></div></div>
-      <div class="f"><label for="p_n">Jumlah hari</label><select id="p_n"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div></div>
+    <div class="live"><i></i>Hasil dihitung otomatis saat mengetik</div>
+    <div class="f"><label for="p_date">Tanggal mulai</label><div class="datebox"><button type="button" data-step="-1" data-for="p_date" aria-label="Hari sebelumnya">‹</button><div class="dv"><b id="p_date_lbl">–</b><small id="p_date_rel"></small><input type="date" id="p_date" aria-label="Pilih tanggal"></div><button type="button" data-step="1" data-for="p_date" aria-label="Hari berikutnya">›</button></div></div>
+    <div class="f"><span class="lbl">Jumlah hari</span><div class="seg" data-input="p_n"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div><input type="hidden" id="p_n" value="3"></div>
     <label class="chk"><input type="checkbox" id="p_useElev" checked> Sertakan elevasi &amp; capacity outflow</label>
     <label class="chk"><input type="checkbox" id="p_useRain" checked> Sertakan prakiraan cuaca (curah hujan)</label>
     <div class="btns" style="margin:12px 0"><button class="btn sm" type="button" id="btnBmkg">⬇ Ambil hujan BMKG</button><span class="mut" id="bmkgStat"></span></div>
@@ -164,6 +181,7 @@ details.day>div{padding:0 14px 12px}
   <div class="card">
     <h2>Simulasi Penggunaan Air</h2>
     <p class="sub">Elevasi besok = f(Storage hari ini + (Inflow − Energi×Koef)×86400).</p>
+    <div class="live"><i></i>Hasil dihitung otomatis saat mengetik</div>
     <div class="f"><label for="s_energy">Energi (ROH) 1 hari</label><div class="in"><input id="s_energy" inputmode="decimal" placeholder="0.00"><span>GWh</span></div></div>
     <div id="sFields"></div>
     <div class="f"><label for="s_in">Inflow Danau</label><div class="in"><input id="s_in" inputmode="decimal" placeholder="0.00"><span>m³/s</span></div>
@@ -197,6 +215,7 @@ details.day>div{padding:0 14px 12px}
   </div>
 </section>
 </main>
+<button class="peek" id="peek" type="button" hidden></button>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -223,6 +242,9 @@ const todayISO=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezone
 const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'],BLN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const tgl=iso=>{const d=new Date(iso+'T12:00:00');return HARI[d.getDay()]+', '+String(d.getDate()).padStart(2,'0')+' '+BLN[d.getMonth()]+' '+d.getFullYear()};
+const tglS=iso=>{const d=new Date(iso+'T12:00:00');return HARI[d.getDay()]+', '+d.getDate()+' '+BLN[d.getMonth()].slice(0,3)+' '+d.getFullYear()};
+const relDay=iso=>{const t=todayISO();return iso===t?'Hari ini':iso===addDays(t,-1)?'Kemarin':iso===addDays(t,1)?'Besok':''};
+function dateLbl(id){const el=$(id);if(!el)return;const v=el.value||todayISO();if(!el.value)el.value=v;$(id+'_lbl').textContent=tglS(v);$(id+'_rel').textContent=relDay(v)}
 
 /* ---------- penyimpanan lokal ---------- */
 const SK='hidro-poso-v1';let store={};
@@ -231,7 +253,7 @@ const save=()=>{try{localStorage.setItem(SK,JSON.stringify(store))}catch(e){}};
 
 /* ---------- komponen input ---------- */
 const field=(id,label,unit,ph)=>`<div class="f"><label for="${id}">${label}</label><div class="in"><input id="${id}" inputmode="decimal" placeholder="${ph||''}"><span>${unit}</span></div><div class="err" id="${id}_e"></div></div>`;
-const elevField=(id,label,opt)=>`<div class="f"><label for="${id}">${label}${opt?' <span class="mut">(opsional)</span>':''}</label><div class="row2"><div class="in"><input id="${id}" data-elev="${id}_cm" inputmode="decimal" placeholder="510.000"><span>mdpl</span></div><div class="in"><input id="${id}_cm" data-cm="${id}" inputmode="decimal" placeholder="tinggi"><span>cm</span></div></div><div class="err" id="${id}_e"></div></div>`;
+const elevField=(id,label,opt)=>`<div class="f"><label for="${id}">${label}${opt?' <span class="mut">(opsional)</span>':''}</label><div class="row2"><div class="in"><input id="${id}" data-elev="${id}_cm" inputmode="decimal" placeholder="contoh 510.4"><span>mdpl</span></div><div class="in"><input id="${id}_cm" data-cm="${id}" inputmode="decimal" placeholder="atau tinggi"><span>cm</span></div></div><div class="err" id="${id}_e"></div></div>`;
 const rainField=(id,s,online)=>`<div class="f"><label for="${id}">${s.n}</label><div class="in"><input id="${id}" inputmode="decimal" placeholder="0.0"><span>mm</span></div>${online?`<label class="chk"><input type="checkbox" id="${id}_on" checked> online</label>`:''}</div>`;
 
 const SHIFT={pagi:[['h_eOldAm','Elevasi pagi kemarin'],['h_eOldPm','Elevasi sore kemarin'],['h_eNewAm','Elevasi pagi hari ini']],
@@ -240,7 +262,7 @@ let shift=store._shift||'pagi';
 const renderShift=()=>{
   $('hFields').innerHTML=SHIFT[shift].map(([id,l,o])=>elevField(id,l,o)).join('');
   document.querySelectorAll('#segShift button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===shift));
-  $('wrapTime').hidden=shift!=='pagi';$('wrapPub').hidden=shift!=='sore';$('hOut').hidden=true;restore($('hFields'));
+  $('wrapTime').hidden=shift!=='pagi';$('wrapPub').hidden=shift!=='sore';$('hOut').hidden=true;restore($('hFields'));if(typeof loadDay==='function'&&window.__ready){loadDay(true);calcHidro(true)}
 };
 $('estFields').innerHTML=[1,2,3,4].map(i=>field('e_d'+i,'Data '+i,'m³/s')).join('');
 $('estCoef').innerHTML=field('e_before','Koefisien awal','',String(K.KNEW))+field('e_after','Koefisien akhir','',String(K.KOLD));
@@ -263,17 +285,53 @@ function restore(root){root.querySelectorAll('input,select').forEach(el=>{if(!el
 document.addEventListener('input',e=>{const el=e.target;if(!el.id)return;store[el.id]=el.type==='checkbox'?el.checked:el.value;
   if(el.dataset.elev){const v=num(el.value),c=$(el.dataset.elev);c.value=isNaN(v)||v<K.DATUM-1?'':fx((v-K.DATUM)*100,1);store[c.id]=c.value}
   if(el.dataset.cm){const v=num(el.value),c=$(el.dataset.cm);c.value=isNaN(v)?'':fx(v/100+K.DATUM,3);store[c.id]=c.value}
-  el.classList.remove('bad','auto','partial');save();
-  if(el.id.startsWith('e_'))estCalc();});
+  el.classList.remove('bad','auto','partial');const er=$(el.id.replace(/_cm$/,'')+'_e');if(er)er.textContent='';save();
+  if(el.type==='date')dateLbl(el.id);
+  if(el.id.startsWith('e_'))estCalc();scheduleLive(el);});
 document.addEventListener('change',e=>{const el=e.target;if(!el.id)return;store[el.id]=el.type==='checkbox'?el.checked:el.value;save();
-  if(el.id==='p_n'||el.id==='p_date')renderDays();if(el.id==='e_conv'){$('estCoef').hidden=!el.checked;estCalc()}});
+  if(el.type==='date')dateLbl(el.id);
+  if(el.id==='p_n'||el.id==='p_date')renderDays();if(el.id==='h_date')loadDay(false);if(el.id==='e_conv'){$('estCoef').hidden=!el.checked;estCalc()}scheduleLive(el)});
+
+/* tombol tanggal ‹ › dan segmented */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-step]');if(!b)return;const el=$(b.dataset.for);el.value=addDays(el.value||todayISO(),+b.dataset.step);
+  el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))});
+function syncSeg(){document.querySelectorAll('.seg[data-input]').forEach(sg=>{const v=$(sg.dataset.input).value;sg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v))})}
+document.querySelectorAll('.seg[data-input]').forEach(sg=>sg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const h=$(sg.dataset.input);h.value=b.dataset.v;syncSeg();
+  h.dispatchEvent(new Event('input',{bubbles:true}));h.dispatchEvent(new Event('change',{bubbles:true}))}));
+
+/* hitung otomatis saat mengetik */
+let liveT;
+function scheduleLive(el){const sec=el.closest&&el.closest('section');if(!sec)return;clearTimeout(liveT);
+  liveT=setTimeout(()=>{const f={'tab-hidro':calcHidro,'tab-hujan':calcHujan,'tab-simul':calcSimul,'tab-prakira':calcPrakira}[sec.id];if(f)f(true)},300)}
 
 /* validasi */
+let QUIET=false;
 const clearErr=root=>root.querySelectorAll('.err').forEach(x=>x.textContent='');
 function need(id,{elev=false,opt=false}={}){const el=$(id),v=num(el.value),e=$(id+'_e');
-  if(isNaN(v)){if(opt)return NaN;el.classList.add('bad');if(e)e.textContent='Wajib diisi';throw 0}
-  if(elev&&v<K.DATUM-1){el.classList.add('bad');if(e)e.textContent='Elevasi < '+fx(K.DATUM-1,3)+' mdpl, cek angka';throw 0}
+  if(isNaN(v)){if(opt)return NaN;if(!QUIET){el.classList.add('bad');if(e)e.textContent='Wajib diisi'}throw 0}
+  if(elev&&v<K.DATUM-1){if(!QUIET){el.classList.add('bad');if(e)e.textContent='Elevasi < '+fx(K.DATUM-1,3)+' mdpl, cek angka'}throw 0}
   return v}
+const reveal=(id,quiet)=>{const o=$(id),wasHidden=o.hidden;o.hidden=false;const r=o.querySelector('.res');if(r){r.classList.remove('upd');void r.offsetWidth;r.classList.add('upd')}
+  if(!quiet)o.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(updatePeek,350)};
+const OUTS={hidro:'hOut',hujan:'rOut',prakira:'pOut',simul:'sOut'};
+function updatePeek(){const pk=$('peek'),o=$(OUTS[store._tab||'hidro']||'');if(!o||o.hidden||typing){pk.hidden=true;return}
+  if(o.getBoundingClientRect().top<innerHeight-90){pk.hidden=true;return}
+  const it=[...o.querySelectorAll('.res>div')].slice(0,2).map(d=>{const b=d.querySelector('b');return d.querySelector('small').textContent+' '+b.firstChild.textContent+' '+(b.querySelector('i')||{}).textContent});
+  pk.innerHTML='<span>'+it.join(' · ')+'</span><span>Lihat ›</span>';pk.hidden=false}
+addEventListener('scroll',()=>updatePeek(),{passive:true});
+let typing=false;document.addEventListener('focusin',e=>{if(e.target.matches('input')){typing=true;$('peek').hidden=true}});document.addEventListener('focusout',()=>{typing=false;setTimeout(updatePeek,200)});
+
+/* riwayat elevasi per tanggal (untuk isi otomatis data kemarin) */
+const hist=()=>store._hist||(store._hist={});
+function putHist(iso,obj){const h=hist();h[iso]=Object.assign(h[iso]||{},obj);const ks=Object.keys(h).sort();while(ks.length>60)delete h[ks.shift()];save()}
+let pendingHist=null;
+function commitHist(){if(!pendingHist)return;pendingHist.forEach(([d,o])=>putHist(d,o));pendingHist=null}
+function loadDay(onlyEmpty){const d=$('h_date').value||todayISO(),h=hist(),p=h[addDays(d,-1)],c=h[d];if(!p&&!c)return;
+  const map=shift==='pagi'?[['h_eOldAm',p&&p.am],['h_eOldPm',p&&p.pm],['h_eNewAm',c&&c.am],['h_out',c&&c.outAm,2]]
+    :[['h_eOldPm2',p&&p.pm],['h_eNewAm2',c&&c.am],['h_eNewPm',c&&c.pm],['h_eNext',c&&c.next],['h_out',c&&c.outPm,2]];
+  let n=0;map.forEach(([id,v,dg])=>{const el=$(id);if(!el)return;if(onlyEmpty&&el.value!=='')return;
+    el.value=v==null?'':fx(v,dg||3);el.dispatchEvent(new Event('input',{bubbles:true}));if(v!=null){el.classList.add('auto');n++}});
+  if(n)toast(n+' isian dimuat dari riwayat')}
 const toast=t=>{const x=$('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>x.classList.remove('show'),1800)};
 const resBox=(id,items)=>{$(id).innerHTML=items.map(([l,v,u])=>`<div><small>${l}</small><b>${v}<i>${u||''}</i></b></div>`).join('')};
 const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -282,7 +340,7 @@ const report={};
 function showRep(id,text){report[id]=text;$(id).innerHTML=waFmt(text);
   const box=document.querySelector(`[data-share="${id}"]`);
   box.innerHTML=`<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(text)}">Kirim ke WhatsApp</a><button class="btn" type="button" data-copy="${id}">Salin</button>${navigator.share&&!IN_IFRAME?`<button class="btn" type="button" data-sh="${id}">Bagikan…</button>`:''}`}
-document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy]'),s=e.target.closest('[data-sh]');
+document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy]'),s=e.target.closest('[data-sh]');if(e.target.closest('[data-share="hRep"]'))commitHist();
   if(c){const t=report[c.dataset.copy];try{await navigator.clipboard.writeText(t);toast('Teks disalin')}catch(_){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Teks disalin')}catch(__){toast('Gagal menyalin, tekan lama teks')}ta.remove()}}
   if(s){try{await navigator.share({text:report[s.dataset.sh]})}catch(_){}}});
 
@@ -300,7 +358,7 @@ $('btnEstUse').onclick=()=>{if(isNaN(estVal))return toast('Data estimasi kosong'
 /* ---------- HIDROLOGI ---------- */
 document.querySelectorAll('#segShift button').forEach(b=>b.onclick=()=>{shift=b.dataset.v;store._shift=shift;save();renderShift()});
 let lastPagi=store._lastPagi||null;
-$('btnHidro').onclick=()=>{const root=$('tab-hidro');clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+function calcHidro(quiet){QUIET=!!quiet;const root=$('tab-hidro');if(!quiet){clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'))}
   let notes=[];
   try{
     const date=tgl($('h_date').value||todayISO()),out=need('h_out');
@@ -309,11 +367,13 @@ $('btnHidro').onclick=()=>{const root=$('tab-hidro');clearErr(root);root.querySe
     if(shift==='pagi'){
       const eOldAm=need('h_eOldAm',{elev:1}),eOldPm=need('h_eOldPm',{elev:1}),eNewAm=need('h_eNewAm',{elev:1}),t=+$('h_time').value;
       infl=inflow(eOldAm,eNewAm,out);eNow=eNewAm;move=(eNewAm-eOldAm)*100;
+      const dI=$('h_date').value||todayISO();pendingHist=[[addDays(dI,-1),{am:eOldAm,pm:eOldPm}],[dI,{am:eNewAm,outAm:out}]];
       const st=status(eNewAm-eOldAm,'pagi kemarin')+'\n'+(t===6?status(eNewAm-eOldPm,'sore kemarin')+'\n':'');
       text=`*Laporan Data Hidrologi PLTA Poso*\nTanggal ${date} pukul 0${t}:00\n\nElevasi Danau = ${fx(eNewAm,3)} Mdpl\n${st}\nInflow Danau rata" = ${fx(infl,2)} m³/s\nOutflow Dam rata" = ${fx(out,2)} m³/s\n( _Record data 24 jam terakhir_ )`;
       lastPagi={date,t,elev:fx(eNewAm,3),st,infl,out};store._lastPagi=lastPagi;save();
     }else{
       const eOldPm=need('h_eOldPm2',{elev:1}),eNewAm=need('h_eNewAm2',{elev:1}),eNewPm=need('h_eNewPm',{elev:1}),eNext=need('h_eNext',{elev:1,opt:1});
+      const dI=$('h_date').value||todayISO();pendingHist=[[addDays(dI,-1),{pm:eOldPm}],[dI,Object.assign({am:eNewAm,pm:eNewPm,outPm:out},isNaN(eNext)?{}:{next:eNext})]];
       infl=inflow(eOldPm,eNewPm,out);eNow=eNewPm;move=(eNewPm-eOldPm)*100;
       const pred=$('h_pub').value==='ext'&&!isNaN(eNext)&&eNext>=K.DATUM?`\n\n*Prakiraan Besok Pagi*\nElevasi Danau = ${fx(eNext,3)} Mdpl`:'';
       if($('h_pub').value==='ext'&&isNaN(eNext))notes.push('Publikasi External tanpa prakiraan besok pagi: bagian prakiraan tidak ditampilkan.');
@@ -322,12 +382,13 @@ $('btnHidro').onclick=()=>{const root=$('tab-hidro');clearErr(root);root.querySe
     if(Math.abs(move)>30)notes.push('Pergerakan '+fx(move,1)+' cm/24 jam, tidak biasa. Cek input elevasi.');
     if(infl<0)notes.push('Inflow negatif ('+fx(infl,2)+' m³/s). Cek outflow atau elevasi.');
     resBox('hRes',[['Elevasi',fx(eNow,3),'mdpl'],['Inflow',fx(infl,2),'m³/s'],['Pergerakan 24 jam',(move>0?'+':'')+fx(move,1),'cm']]);
-    $('hNote').textContent=notes.join(' ');showRep('hRep',text);$('hOut').hidden=false;$('hOut').scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){if(e!==0)throw e;toast('Lengkapi isian bertanda merah')}};
+    $('hNote').textContent=notes.join(' ');showRep('hRep',text);reveal('hOut',quiet);if(!quiet)commitHist();
+  }catch(e){if(e!==0)throw e;if(quiet)$('hOut').hidden=true;else toast('Lengkapi isian bertanda merah')}finally{QUIET=false}}
+$('btnHidro').onclick=()=>calcHidro(false);
 
 /* ---------- CURAH HUJAN ---------- */
-$('btnHujan').onclick=()=>{
-  const raw=ST.map(s=>$('r_'+s.k).value.trim()),vals=raw.map(num),mark=ST.map(s=>$('r_'+s.k+'_on').checked?'':'*');
+function calcHujan(quiet){
+  const raw=ST.map(s=>$('r_'+s.k).value.trim());if(quiet&&raw.every(r=>r===''))return;const vals=raw.map(num),mark=ST.map(s=>$('r_'+s.k+'_on').checked?'':'*');
   const show=raw.map((r,i)=>isNaN(vals[i])?'0.0':String(vals[i]));
   const avg=thiessen(vals),avgMark=mark.slice(0,5).includes('*')?'*':'';
   const date=tgl($('r_date').value||todayISO());const notes=[];
@@ -338,12 +399,13 @@ $('btnHujan').onclick=()=>{
   const hil=`- Sulewana = ${show[5]} mm${mark[5]} \n- Pandiri = ${show[6]} mm${mark[6]}`;
   let text;
   if($('r_join').checked){
-    if(!lastPagi){toast('Hitung laporan hidrologi pagi dulu');return}
+    if(!lastPagi){if(!quiet)toast('Hitung laporan hidrologi pagi dulu');return}
     text=`*Laporan Data Curah Hujan dan Hidrologi PLTA Poso*\nTanggal ${date} pukul 0${lastPagi.t}:00\n\n*Data Curah Hujan*\nCatchment Area Danau:\n${ca}\nHilir Sungai Poso:\n${hil} \n\n*Data Hidrologi*\nElevasi Danau = ${lastPagi.elev} Mdpl\n${lastPagi.st}\nInflow Danau rata" = ${fx(lastPagi.infl,2)} m³/s\nOutflow Dam rata" = ${fx(lastPagi.out,2)} m³/s\n( _Record data 24 jam terakhir_ )`;
     if(lastPagi.date!==date)notes.push('Tanggal laporan hidrologi pagi ('+lastPagi.date+') berbeda dengan tanggal curah hujan.');
   }else text=`*Laporan Data Curah Hujan di Lingkungan Sekitar PLTA Poso*\nTanggal ${date}\n\nCatchment Area Danau:\n${ca}\n- _Rata" CA_ = ${fx(avg,2)} mm${avgMark} \nHilir Sungai Poso:\n${hil}`;
   resBox('rRes',[['Rata-rata CA (Thiessen)',fx(avg,2),'mm'],['Maks stasiun',fx(Math.max(...vals.map(v=>isNaN(v)?0:v)),1),'mm']]);
-  $('rNote').textContent=notes.join(' ');showRep('rRep',text);$('rOut').hidden=false;$('rOut').scrollIntoView({behavior:'smooth',block:'start'})};
+  $('rNote').textContent=notes.join(' ');showRep('rRep',text);reveal('rOut',quiet)}
+$('btnHujan').onclick=()=>calcHujan(false);
 
 /* ---------- BMKG ---------- */
 let bmkg=null;
@@ -373,9 +435,9 @@ $('btnBmkg').onclick=async()=>{$('bmkgStat').textContent='Mengambil…';
   catch(e){setDot(0);$('bmkgStat').textContent='';$('bmkgNote').textContent=e.message}};
 
 /* ---------- PRAKIRAAN ---------- */
-$('btnPrakira').onclick=()=>{const root=$('tab-prakira');clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+function calcPrakira(quiet){QUIET=!!quiet;const root=$('tab-prakira');if(!quiet){clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'))}
   const n=+$('p_n').value,d0=$('p_date').value||todayISO(),useE=$('p_useElev').checked,useR=$('p_useRain').checked,notes=[];
-  if(!useE&&!useR)return toast('Pilih minimal satu isi laporan');
+  if(!useE&&!useR){QUIET=false;if(!quiet)toast('Pilih minimal satu isi laporan');return}
   try{
     let text='',caps=[],rains=[];
     if(useE){const es=[];for(let i=0;i<n;i++)es.push(need('p_e'+i,{elev:1}));
@@ -391,19 +453,21 @@ $('btnPrakira').onclick=()=>{const root=$('tab-prakira');clearErr(root);root.que
         text+=`\n\n_Tanggal ${tgl(addDays(d0,i))} _\nCatchment Area Danau:\n${ST.map((s,j)=>s.ca?`- ${s.n} = ${sh[j]} mm`:null).filter(Boolean).join('\n')}\n- _Rata" CA_ = ${fx(a,1)} mm\nHilir Sungai Poso:\n- Sulewana = ${sh[5]} mm\n- Pandiri = ${sh[6]} mm`}
       if(anyAuto&&bmkg)text+=`\n\n_Sumber prakiraan hujan: BMKG (${bmkg.fetchedAt})${anyPart?', hari pertama parsial':''}_`}
     resBox('pRes',[...(useE?[['Capacity Outflow hari ini',fx(caps[0],1),'m³/s']]:[]),...(useR?[['Hujan CA hari ini',fx(rains[0],1),'mm'],['Total CA '+n+' hari',fx(rains.reduce((a,b)=>a+b,0),1),'mm']]:[])]);
-    $('pNote').textContent=notes.join(' ');showRep('pRep',text);$('pOut').hidden=false;$('pOut').scrollIntoView({behavior:'smooth',block:'start'})
-  }catch(e){if(e!==0)throw e;toast('Lengkapi elevasi tiap hari')}};
+    $('pNote').textContent=notes.join(' ');showRep('pRep',text);reveal('pOut',quiet)
+  }catch(e){if(e!==0)throw e;if(quiet)$('pOut').hidden=true;else toast('Lengkapi elevasi tiap hari')}finally{QUIET=false}}
+$('btnPrakira').onclick=()=>calcPrakira(false);
 
 /* ---------- SIMULASI ---------- */
 $('btnSimFrom').onclick=()=>{if(!lastPagi)return toast('Belum ada laporan pagi');$('s_in').value=fx(lastPagi.infl,2);$('s_elev').value=lastPagi.elev;$('s_elev').dispatchEvent(new Event('input',{bubbles:true}));store.s_in=$('s_in').value;save();toast('Diisi dari laporan pagi')};
-$('btnSimul').onclick=()=>{const root=$('tab-simul');clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+function calcSimul(quiet){QUIET=!!quiet;const root=$('tab-simul');if(!quiet){clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'))}
   try{const E=need('s_energy'),e0=need('s_elev',{elev:1}),Q=need('s_in'),k=isNaN(num($('s_k').value))?K.WATER:num($('s_k').value);
     const out=k*E,e1=fromSto((K.SEC*Q-K.SEC*out)+toSto(e0)),h1=(e1-K.DATUM)*100,h0=(e0-K.DATUM)*100,mv=h1-h0;
     const st=mv>1e-9?'Naik '+fx(mv,1):mv<-1e-9?'Turun '+fx(-mv,1):'Tetap. 0';
     resBox('sRes',[['Elevasi besok',fx(e1,3),'mdpl'],['Tinggi besok',fx(h1,1),'cm'],['Pergerakan',st,'cm'],['Outflow',fx(out,2),'m³/s']]);
     showRep('sRep',`*Simulasi Penggunaan Air PLTA Poso*\nEnergi = ${fx(E,2)} GWh (Outflow ${fx(out,2)} m³/s)\nInflow = ${fx(Q,2)} m³/s\nElevasi hari ini = ${fx(e0,3)} Mdpl\nElevasi besok = ${fx(e1,3)} Mdpl\n( _${st} cm_ )`);
-    $('sOut').hidden=false;$('sOut').scrollIntoView({behavior:'smooth',block:'start'})
-  }catch(e){if(e!==0)throw e;toast('Lengkapi isian bertanda merah')}};
+    reveal('sOut',quiet)
+  }catch(e){if(e!==0)throw e;if(quiet)$('sOut').hidden=true;else toast('Lengkapi isian bertanda merah')}finally{QUIET=false}}
+$('btnSimul').onclick=()=>calcSimul(false);
 
 /* ---------- reset ---------- */
 const RESET={hidro:'#tab-hidro',hujan:'#tab-hujan',prakira:'#tab-prakira',simul:'#tab-simul'};
@@ -428,12 +492,14 @@ const TABS=[['hidro','Hidrologi','M4 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4 2 6 0M4 19
  ['simul','Simulasi','M4 6h16M4 12h16M4 18h16M8 4v4m8 2v4m-6 2v4'],
  ['set','Setelan','M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z']];
 $('nav').innerHTML=TABS.map(([k,l,p])=>`<button role="tab" id="t_${k}" aria-controls="tab-${k}" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>${l}</button>`).join('');
-const go=k=>{TABS.forEach(([t])=>{$('tab-'+t).hidden=t!==k;$('t_'+t).setAttribute('aria-selected',t===k)});store._tab=k;save();window.scrollTo(0,0)};
+const go=k=>{TABS.forEach(([t])=>{$('tab-'+t).hidden=t!==k;$('t_'+t).setAttribute('aria-selected',t===k)});store._tab=k;save();window.scrollTo(0,0);updatePeek()};
+$('peek').onclick=()=>{const o=$(OUTS[store._tab]);if(o)o.scrollIntoView({behavior:'smooth',block:'start'})};
 TABS.forEach(([k])=>$('t_'+k).onclick=()=>go(k));
 
 /* ---------- init ---------- */
-['h_date','r_date','p_date'].forEach(id=>{if(!store[id])store[id]=todayISO()});
-restore(document);renderShift();renderDays();go(store._tab||'hidro');
+const newDay=store._day!==todayISO();if(newDay){['h_date','r_date','p_date'].forEach(id=>store[id]=todayISO());store._day=todayISO();save()}
+restore(document);syncSeg();['h_date','r_date','p_date'].forEach(dateLbl);renderShift();renderDays();go(store._tab||'hidro');window.__ready=1;loadDay(!newDay);
+[calcHidro,calcHujan,calcSimul,calcPrakira].forEach(f=>f(true));
 if(IN_IFRAME)$('hdrSub').textContent='Pratinjau · BMKG aktif setelah di GitHub Pages';
 if('serviceWorker' in navigator&&!IN_IFRAME&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 }
