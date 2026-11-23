@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6e6e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hidrologi Poso">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>Hidrologi PLTA Poso</title>
+<style>
+/*
+VOICE: alat kerja harian operator O&M, tenang dan rapi, angka paling depan.
+IDEA: buku laporan jaga PLTA: lembar isian di atas, hasil besar, teks siap kirim ke WhatsApp di bawah.
+PICTURE: angka hasil besar (inflow / elevasi / capacity outflow) di kartu hasil teal.
+COLOUR and TYPE: teal PLTA #0b6e6e hanya untuk header & hasil, sisanya netral; system-ui (jalan offline).
+LAYOUT: satu kolom ≤720px, tab bawah di HP, tab atas di layar lebar.
+*/
+:root{color-scheme:light dark;
+--bg:light-dark(#f4f6f6,#0f1414);--card:light-dark(#fff,#182020);--ink:light-dark(#152020,#e7eeee);
+--mut:light-dark(#5b6b6b,#9fb0b0);--line:light-dark(#d9e1e1,#2a3636);--teal:#0b6e6e;--teal2:light-dark(#e3f2f1,#163434);
+--warn:light-dark(#9a5b00,#ffb950);--warnbg:light-dark(#fff4e0,#2f2414);--err:light-dark(#b3261e,#ff8a80);--ok:light-dark(#1d6b3a,#7fd69c)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:clip;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{background:var(--teal);color:#fff;padding:calc(10px + env(safe-area-inset-top)) max(4vw,16px) 12px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0;font-weight:650;flex:1}
+header small{display:block;font-weight:400;opacity:.8;font-size:13px}
+.dot{width:10px;height:10px;border-radius:50%;background:#9fb0b0;flex:none}.dot.on{background:#7fe3a0}.dot.off{background:#ffb950}
+main{max-width:720px;margin:0 auto;padding:14px max(3vw,12px)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav button{background:none;border:0;color:var(--mut);font:inherit;font-size:12px;padding:8px 2px 6px;min-height:56px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav button svg{width:22px;height:22px}
+nav button[aria-selected=true]{color:var(--teal);font-weight:650}
+@media(min-width:900px){body{padding-bottom:0}nav{position:sticky;top:58px;max-width:720px;margin:0 auto;border:1px solid var(--line);border-radius:12px;margin-top:12px}nav button{flex-direction:row;justify-content:center;font-size:14px;min-height:46px}}
+section[hidden]{display:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+h2{font-size:20px;margin:2px 0 4px}h3{font-size:16px;margin:0 0 10px}
+.sub{color:var(--mut);font-size:14px;margin:0 0 12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;font:inherit;padding:10px;min-height:44px;color:var(--ink);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--teal);color:#fff;font-weight:600}
+.f{margin-bottom:12px}
+.f>label,.lbl{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
+.row2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.in{position:relative}
+.in input,select{width:100%;font:inherit;font-size:16px;padding:10px 44px 10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-height:44px;font-variant-numeric:tabular-nums}
+select{padding-right:12px}
+.in span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--mut);font-size:13px;pointer-events:none;white-space:nowrap}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+input.bad{border-color:var(--err)}input.auto{background:var(--teal2)}input.partial{border-style:dashed;border-color:var(--warn)}
+.err{color:var(--err);font-size:13px;margin-top:3px}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin-top:4px}
+.chk input{width:18px;height:18px;min-height:0;accent-color:var(--teal)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.btn{font:inherit;font-weight:600;border-radius:10px;min-height:44px;padding:10px 16px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.pri{background:var(--teal);border-color:var(--teal);color:#fff;flex:1}
+.btn.wa{background:#1f9d55;border-color:#1f9d55;color:#fff;flex:1}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:14px}
+.res{background:var(--teal);color:#fff;border-radius:14px;padding:16px;margin-bottom:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.res div small{display:block;opacity:.85;font-size:13px}
+.res b{font-size:clamp(24px,7vw,32px);font-variant-numeric:tabular-nums;line-height:1.15;white-space:nowrap}
+.res b i{font-style:normal;font-size:14px;font-weight:500;opacity:.85;margin-left:3px}
+.rep{white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 10px;overflow-wrap:anywhere}
+.note{font-size:13px;color:var(--warn);background:var(--warnbg);border-radius:10px;padding:8px 10px;margin:8px 0}
+.note:empty{display:none}
+.ok{color:var(--ok)}.mut{color:var(--mut);font-size:13px}
+details.day{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--card)}
+details.day>summary{padding:12px 14px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;gap:8px;min-height:44px;align-items:center}
+details.day>div{padding:0 14px 12px}
+.grp{font-size:13px;font-weight:600;color:var(--mut);margin:10px 0 6px}
+.mini{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.mini th,.mini td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:right;white-space:nowrap}.mini th:first-child,.mini td:first-child{text-align:left}
+.scroll{overflow-x:auto}
+.box{border:1px dashed var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#152020;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<header><div class="dot" id="dot" title="Status BMKG"></div><h1>Hidrologi PLTA Poso<small id="hdrSub">Kalkulator &amp; laporan WA</small></h1></header>
+
+<nav role="tablist" id="nav"></nav>
+
+<main>
+<!-- ================= HIDROLOGI ================= -->
+<section id="tab-hidro" role="tabpanel">
+  <div class="card">
+    <h2>Laporan Data Hidrologi</h2>
+    <p class="sub">Inflow = (ΔStorage + Outflow×86400) / 86400, kurva storage dari APK v3.6.8.</p>
+    <div class="seg" id="segShift"><button data-v="pagi" aria-pressed="true">Pagi</button><button data-v="sore" aria-pressed="false">Sore</button></div>
+    <div class="row2"><div class="f"><label for="h_date">Tanggal</label><div class="in"><input type="date" id="h_date" style="padding-right:12px"></div></div>
+      <div class="f" id="wrapTime"><label for="h_time">Jam terbit</label><select id="h_time"><option value="6">06:00</option><option value="7">07:00</option></select></div>
+      <div class="f" id="wrapPub" hidden><label for="h_pub">Publikasi</label><select id="h_pub"><option value="int">Internal</option><option value="ext">External</option></select></div></div>
+    <div id="hFields"></div>
+    <div class="f"><label for="h_out">Outflow Dam rata-rata 24 jam</label><div class="in"><input id="h_out" inputmode="decimal" placeholder="0.00"><span>m³/s</span></div>
+      <button class="btn sm" type="button" id="btnEst" style="margin-top:6px">Estimasi Outflow</button></div>
+    <div class="box" id="estBox" hidden>
+      <div class="lbl">Estimasi Outflow (rata-rata data, + fishway)</div>
+      <div class="grid2" id="estFields"></div>
+      <label class="chk"><input type="checkbox" id="e_conv"> Konversi koefisien</label>
+      <div class="grid2" id="estCoef" hidden></div>
+      <div class="grid2"><div class="f"><label for="e_fish">Fishway</label><div class="in"><input id="e_fish" inputmode="decimal" value="5"><span>m³/s</span></div></div></div>
+      <div class="mut" id="estOut"></div>
+      <div class="btns"><button class="btn pri sm" type="button" id="btnEstUse">Pakai nilai ini</button></div>
+    </div>
+    <div class="btns"><button class="btn pri" type="button" id="btnHidro">Hitung</button><button class="btn" type="button" data-reset="hidro">Reset</button></div>
+  </div>
+  <div id="hOut" hidden>
+    <div class="res" id="hRes"></div>
+    <div class="note" id="hNote"></div>
+    <div class="card"><h3>Teks laporan</h3><pre class="rep" id="hRep"></pre><div class="btns" data-share="hRep"></div></div>
+  </div>
+</section>
+
+<!-- ================= CURAH HUJAN ================= -->
+<section id="tab-hujan" role="tabpanel" hidden>
+  <div class="card">
+    <h2>Kalkulator Curah Hujan</h2>
+    <p class="sub">Rata-rata catchment area metode Thiessen (luas DAS 1754.7 km²). Hilir tidak masuk rata-rata. Hapus centang "online" kalau data stasiun tidak terkirim (ditandai *).</p>
+    <div class="f"><label for="r_date">Tanggal</label><div class="in"><input type="date" id="r_date" style="padding-right:12px"></div></div>
+    <div class="grp">Catchment Area Danau</div><div class="grid2" id="rCA"></div>
+    <div class="grp">Hilir Sungai Poso</div><div class="grid2" id="rHilir"></div>
+    <label class="chk" style="margin:8px 0"><input type="checkbox" id="r_join"> Gabung dengan laporan hidrologi pagi (format "Curah Hujan dan Hidrologi")</label>
+    <div class="btns"><button class="btn pri" type="button" id="btnHujan">Hitung</button><button class="btn" type="button" data-reset="hujan">Reset</button></div>
+  </div>
+  <div id="rOut" hidden>
+    <div class="res" id="rRes"></div>
+    <div class="note" id="rNote"></div>
+    <div class="card"><h3>Teks laporan</h3><pre class="rep" id="rRep"></pre><div class="btns" data-share="rRep"></div></div>
+  </div>
+</section>
+
+<!-- ================= PRAKIRAAN ================= -->
+<section id="tab-prakira" role="tabpanel" hidden>
+  <div class="card">
+    <h2>Analisis &amp; Prakiraan</h2>
+    <p class="sub">Capacity Outflow dari elevasi (polinomial APK) + prakiraan hujan per stasiun. Hujan bisa diambil otomatis dari BMKG (sekitar 3 hari ke depan).</p>
+    <div class="row2"><div class="f"><label for="p_date">Tanggal mulai</label><div class="in"><input type="date" id="p_date" style="padding-right:12px"></div></div>
+      <div class="f"><label for="p_n">Jumlah hari</label><select id="p_n"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div></div>
+    <label class="chk"><input type="checkbox" id="p_useElev" checked> Sertakan elevasi &amp; capacity outflow</label>
+    <label class="chk"><input type="checkbox" id="p_useRain" checked> Sertakan prakiraan cuaca (curah hujan)</label>
+    <div class="btns" style="margin:12px 0"><button class="btn sm" type="button" id="btnBmkg">⬇ Ambil hujan BMKG</button><span class="mut" id="bmkgStat"></span></div>
+    <div class="note" id="bmkgNote"></div>
+    <div id="pDays"></div>
+    <div class="btns"><button class="btn pri" type="button" id="btnPrakira">Hitung</button><button class="btn" type="button" data-reset="prakira">Reset</button></div>
+  </div>
+  <div id="bmkgTbl" class="card" hidden></div>
+  <div id="pOut" hidden>
+    <div class="res" id="pRes"></div>
+    <div class="note" id="pNote"></div>
+    <div class="card"><h3>Teks laporan</h3><pre class="rep" id="pRep"></pre><div class="btns" data-share="pRep"></div></div>
+  </div>
+</section>
+
+<!-- ================= SIMULASI ================= -->
+<section id="tab-simul" role="tabpanel" hidden>
+  <div class="card">
+    <h2>Simulasi Penggunaan Air</h2>
+    <p class="sub">Elevasi besok = f(Storage hari ini + (Inflow − Energi×Koef)×86400).</p>
+    <div class="f"><label for="s_energy">Energi (ROH) 1 hari</label><div class="in"><input id="s_energy" inputmode="decimal" placeholder="0.00"><span>GWh</span></div></div>
+    <div id="sFields"></div>
+    <div class="f"><label for="s_in">Inflow Danau</label><div class="in"><input id="s_in" inputmode="decimal" placeholder="0.00"><span>m³/s</span></div>
+      <button class="btn sm" type="button" id="btnSimFrom" style="margin-top:6px">Ambil dari laporan pagi</button></div>
+    <div class="f"><label for="s_k">Koefisien penggunaan air</label><div class="in"><input id="s_k" inputmode="decimal" value="27.04"><span>m³/s per GWh</span></div></div>
+    <div class="btns"><button class="btn pri" type="button" id="btnSimul">Hitung</button><button class="btn" type="button" data-reset="simul">Reset</button></div>
+  </div>
+  <div id="sOut" hidden>
+    <div class="res" id="sRes"></div>
+    <div class="card"><h3>Teks ringkas</h3><pre class="rep" id="sRep"></pre><div class="btns" data-share="sRep"></div></div>
+  </div>
+</section>
+
+<!-- ================= SETELAN ================= -->
+<section id="tab-set" role="tabpanel" hidden>
+  <div class="card">
+    <h2>Setelan</h2>
+    <div class="f"><label for="cfg_url">URL Apps Script (proxy BMKG)</label><div class="in"><input id="cfg_url" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec" style="padding-right:12px"></div>
+      <div class="mut">Kosongkan untuk memakai proxy bawaan (Proxy BMKG Poso). Isi hanya kalau deploy ulang dengan URL baru.</div></div>
+    <div class="btns"><button class="btn pri" type="button" id="btnTest">Tes koneksi BMKG</button></div>
+    <div class="mut" id="testOut" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h3>Konstanta (dari APK v3.6.8)</h3>
+    <div class="scroll"><table class="mini" id="constTbl"></table></div>
+  </div>
+  <div class="card">
+    <h3>Pasang di iPhone</h3>
+    <p class="sub" style="margin:0">Buka di Safari → tombol Share → <b>Add to Home Screen</b>. Kalkulator tetap jalan tanpa sinyal; ambil BMKG perlu internet.</p>
+    <div class="btns" style="margin-top:10px"><button class="btn" type="button" id="btnWipe">Hapus semua isian tersimpan</button></div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+/* ---------- konstanta dari APK ---------- */
+const K={DATUM:509.567,OFFSET:509.021223993045,MULT:2.77466334098742E-9,SEC:86400,WATER:27.04,CATCH:1754.7,FISH:5,KNEW:2.25,KOLD:2.50};
+const ST=[{k:'tentena',n:'Tentena',w:152.96,ca:1},{k:'salukaia',n:'Salukaia',w:527.99,ca:1},{k:'panjo',n:'Panjo',w:456.65,ca:1},{k:'mayasari',n:'Mayasari',w:374.35,ca:1},{k:'tindoli',n:'Tindoli',w:242.75,ca:1},{k:'sulewana',n:'Sulewana',w:0,ca:0},{k:'pandiri',n:'Pandiri',w:0,ca:0}];
+const CAP_MIN=509.0; // titik minimum polinomial capacity outflow; di bawahnya kurva berbalik naik (tidak fisis)
+const IN_IFRAME=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+const $=id=>document.getElementById(id);
+const num=v=>{if(v==null)return NaN;const s=String(v).trim().replace(',','.');return s===''?NaN:Number(s)};
+const fx=(x,d)=>(Math.round(x*10**d)/10**d).toFixed(d);
+
+/* ---------- rumus ---------- */
+const vol=e=>(e*e*404687.3463-4.127579935218E8*e+1.05247720040232E11)+(e*e*3135714.2857-2.8434185714294E9*e+6.34896802857355E11);
+const inflow=(eOld,eNew,out)=>(K.SEC*out+(vol(eNew)-vol(eOld)))/K.SEC;
+const toSto=e=>(e-K.OFFSET)/K.MULT, fromSto=s=>K.MULT*s+K.OFFSET;
+const cap=e=>e**4*3.1937692965-e**3*6511.8846162613+e**2*4979009.43094956-e*1.69199276485275E9+2.15619051077805E11;
+const thiessen=vals=>ST.reduce((a,s,i)=>a+(s.w/K.CATCH)*(isNaN(vals[i])?0:vals[i]),0);
+const status=(m,ref)=>{m=Math.round(m*1e6)/1e6;const a=fx(Math.abs(100*m),1);return '( _'+(m>0?'Naik '+a+' cm dari '+ref:m<0?'Turun '+a+' cm dari '+ref:'Tetap. Sama dengan '+ref)+'_ )'};
+
+/* ---------- tanggal ---------- */
+const todayISO=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'],BLN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const tgl=iso=>{const d=new Date(iso+'T12:00:00');return HARI[d.getDay()]+', '+String(d.getDate()).padStart(2,'0')+' '+BLN[d.getMonth()]+' '+d.getFullYear()};
+
+/* ---------- penyimpanan lokal ---------- */
+const SK='hidro-poso-v1';let store={};
+try{store=JSON.parse(localStorage.getItem(SK)||'{}')}catch(e){store={}}
+const save=()=>{try{localStorage.setItem(SK,JSON.stringify(store))}catch(e){}};
+
+/* ---------- komponen input ---------- */
+const field=(id,label,unit,ph)=>`<div class="f"><label for="${id}">${label}</label><div class="in"><input id="${id}" inputmode="decimal" placeholder="${ph||''}"><span>${unit}</span></div><div class="err" id="${id}_e"></div></div>`;
+const elevField=(id,label,opt)=>`<div class="f"><label for="${id}">${label}${opt?' <span class="mut">(opsional)</span>':''}</label><div class="row2"><div class="in"><input id="${id}" data-elev="${id}_cm" inputmode="decimal" placeholder="510.000"><span>mdpl</span></div><div class="in"><input id="${id}_cm" data-cm="${id}" inputmode="decimal" placeholder="tinggi"><span>cm</span></div></div><div class="err" id="${id}_e"></div></div>`;
+const rainField=(id,s,online)=>`<div class="f"><label for="${id}">${s.n}</label><div class="in"><input id="${id}" inputmode="decimal" placeholder="0.0"><span>mm</span></div>${online?`<label class="chk"><input type="checkbox" id="${id}_on" checked> online</label>`:''}</div>`;
+
+const SHIFT={pagi:[['h_eOldAm','Elevasi pagi kemarin'],['h_eOldPm','Elevasi sore kemarin'],['h_eNewAm','Elevasi pagi hari ini']],
+            sore:[['h_eOldPm2','Elevasi sore kemarin'],['h_eNewAm2','Elevasi pagi hari ini'],['h_eNewPm','Elevasi sore hari ini'],['h_eNext','Prakiraan elevasi besok pagi',1]]};
+let shift=store._shift||'pagi';
+const renderShift=()=>{
+  $('hFields').innerHTML=SHIFT[shift].map(([id,l,o])=>elevField(id,l,o)).join('');
+  document.querySelectorAll('#segShift button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===shift));
+  $('wrapTime').hidden=shift!=='pagi';$('wrapPub').hidden=shift!=='sore';$('hOut').hidden=true;restore($('hFields'));
+};
+$('estFields').innerHTML=[1,2,3,4].map(i=>field('e_d'+i,'Data '+i,'m³/s')).join('');
+$('estCoef').innerHTML=field('e_before','Koefisien awal','',String(K.KNEW))+field('e_after','Koefisien akhir','',String(K.KOLD));
+$('rCA').innerHTML=ST.filter(s=>s.ca).map(s=>rainField('r_'+s.k,s,1)).join('');
+$('rHilir').innerHTML=ST.filter(s=>!s.ca).map(s=>rainField('r_'+s.k,s,1)).join('');
+$('sFields').innerHTML=elevField('s_elev','Elevasi danau hari ini');
+
+const renderDays=()=>{
+  const n=+$('p_n').value,d0=$('p_date').value||todayISO();
+  $('pDays').innerHTML=Array.from({length:n},(_,i)=>`<details class="day" ${i===0?'open':''}><summary><span>${i===0?'Hari ini':'Hari ke-'+(i+1)} · ${tgl(addDays(d0,i))}</span><span class="mut" id="p_sum_${i}"></span></summary><div>
+   ${elevField('p_e'+i,'Elevasi danau',0)}
+   <div class="grp">Catchment Area Danau</div><div class="grid2">${ST.filter(s=>s.ca).map(s=>rainField(`p_r${i}_${s.k}`,s,0)).join('')}</div>
+   <div class="grp">Hilir Sungai Poso</div><div class="grid2">${ST.filter(s=>!s.ca).map(s=>rainField(`p_r${i}_${s.k}`,s,0)).join('')}</div>
+  </div></details>`).join('');
+  restore($('pDays'));if(bmkg)applyBmkg(false);
+};
+
+/* restore & autosave semua input */
+function restore(root){root.querySelectorAll('input,select').forEach(el=>{if(!el.id||el.id==='cfg_url'&&!store[el.id])return;const v=store[el.id];if(v===undefined)return;if(el.type==='checkbox')el.checked=v;else el.value=v})}
+document.addEventListener('input',e=>{const el=e.target;if(!el.id)return;store[el.id]=el.type==='checkbox'?el.checked:el.value;
+  if(el.dataset.elev){const v=num(el.value),c=$(el.dataset.elev);c.value=isNaN(v)||v<K.DATUM-1?'':fx((v-K.DATUM)*100,1);store[c.id]=c.value}
+  if(el.dataset.cm){const v=num(el.value),c=$(el.dataset.cm);c.value=isNaN(v)?'':fx(v/100+K.DATUM,3);store[c.id]=c.value}
+  el.classList.remove('bad','auto','partial');save();
+  if(el.id.startsWith('e_'))estCalc();});
+document.addEventListener('change',e=>{const el=e.target;if(!el.id)return;store[el.id]=el.type==='checkbox'?el.checked:el.value;save();
+  if(el.id==='p_n'||el.id==='p_date')renderDays();if(el.id==='e_conv'){$('estCoef').hidden=!el.checked;estCalc()}});
+
+/* validasi */
+const clearErr=root=>root.querySelectorAll('.err').forEach(x=>x.textContent='');
+function need(id,{elev=false,opt=false}={}){const el=$(id),v=num(el.value),e=$(id+'_e');
+  if(isNaN(v)){if(opt)return NaN;el.classList.add('bad');if(e)e.textContent='Wajib diisi';throw 0}
+  if(elev&&v<K.DATUM-1){el.classList.add('bad');if(e)e.textContent='Elevasi < '+fx(K.DATUM-1,3)+' mdpl, cek angka';throw 0}
+  return v}
+const toast=t=>{const x=$('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>x.classList.remove('show'),1800)};
+const resBox=(id,items)=>{$(id).innerHTML=items.map(([l,v,u])=>`<div><small>${l}</small><b>${v}<i>${u||''}</i></b></div>`).join('')};
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const waFmt=s=>esc(s).replace(/\*([^*\n]+)\*/g,'<b>$1</b>').replace(/(^|[\s(])_([^_\n]+)_/g,'$1<i>$2</i>');
+const report={};
+function showRep(id,text){report[id]=text;$(id).innerHTML=waFmt(text);
+  const box=document.querySelector(`[data-share="${id}"]`);
+  box.innerHTML=`<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(text)}">Kirim ke WhatsApp</a><button class="btn" type="button" data-copy="${id}">Salin</button>${navigator.share&&!IN_IFRAME?`<button class="btn" type="button" data-sh="${id}">Bagikan…</button>`:''}`}
+document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy]'),s=e.target.closest('[data-sh]');
+  if(c){const t=report[c.dataset.copy];try{await navigator.clipboard.writeText(t);toast('Teks disalin')}catch(_){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Teks disalin')}catch(__){toast('Gagal menyalin, tekan lama teks')}ta.remove()}}
+  if(s){try{await navigator.share({text:report[s.dataset.sh]})}catch(_){}}});
+
+/* ---------- estimasi outflow ---------- */
+let estVal=NaN;
+function estCalc(){const vals=[1,2,3,4].map(i=>num($('e_d'+i).value)).filter(v=>!isNaN(v));
+  if(!vals.length||vals.reduce((a,b)=>a+b,0)===0){estVal=NaN;$('estOut').textContent='Isi minimal 1 data.';return}
+  let avg=vals.reduce((a,b)=>a+b,0)/vals.length;const fish=isNaN(num($('e_fish').value))?K.FISH:num($('e_fish').value);
+  let txt='Rata-rata '+vals.length+' data = '+fx(avg,2);
+  if($('e_conv').checked){const b=num($('e_before').value),a=num($('e_after').value),B=isNaN(b)?K.KNEW:b,A=isNaN(a)?K.KOLD:a;avg=avg/B*A;txt+=' → ×'+A+'/'+B+' = '+fx(avg,2)}
+  estVal=avg+fish;$('estOut').innerHTML=txt+' + fishway '+fish+' = <b>'+fx(estVal,2)+' m³/s</b>'}
+$('btnEst').onclick=()=>{$('estBox').hidden=!$('estBox').hidden;$('estCoef').hidden=!$('e_conv').checked;estCalc()};
+$('btnEstUse').onclick=()=>{if(isNaN(estVal))return toast('Data estimasi kosong');$('h_out').value=fx(estVal,2);store.h_out=$('h_out').value;save();$('estBox').hidden=true;toast('Outflow diisi')};
+
+/* ---------- HIDROLOGI ---------- */
+document.querySelectorAll('#segShift button').forEach(b=>b.onclick=()=>{shift=b.dataset.v;store._shift=shift;save();renderShift()});
+let lastPagi=store._lastPagi||null;
+$('btnHidro').onclick=()=>{const root=$('tab-hidro');clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+  let notes=[];
+  try{
+    const date=tgl($('h_date').value||todayISO()),out=need('h_out');
+    if(out<=0)notes.push('Outflow ≤ 0, cek angka.');
+    let text,eNow,infl,move;
+    if(shift==='pagi'){
+      const eOldAm=need('h_eOldAm',{elev:1}),eOldPm=need('h_eOldPm',{elev:1}),eNewAm=need('h_eNewAm',{elev:1}),t=+$('h_time').value;
+      infl=inflow(eOldAm,eNewAm,out);eNow=eNewAm;move=(eNewAm-eOldAm)*100;
+      const st=status(eNewAm-eOldAm,'pagi kemarin')+'\n'+(t===6?status(eNewAm-eOldPm,'sore kemarin')+'\n':'');
+      text=`*Laporan Data Hidrologi PLTA Poso*\nTanggal ${date} pukul 0${t}:00\n\nElevasi Danau = ${fx(eNewAm,3)} Mdpl\n${st}\nInflow Danau rata" = ${fx(infl,2)} m³/s\nOutflow Dam rata" = ${fx(out,2)} m³/s\n( _Record data 24 jam terakhir_ )`;
+      lastPagi={date,t,elev:fx(eNewAm,3),st,infl,out};store._lastPagi=lastPagi;save();
+    }else{
+      const eOldPm=need('h_eOldPm2',{elev:1}),eNewAm=need('h_eNewAm2',{elev:1}),eNewPm=need('h_eNewPm',{elev:1}),eNext=need('h_eNext',{elev:1,opt:1});
+      infl=inflow(eOldPm,eNewPm,out);eNow=eNewPm;move=(eNewPm-eOldPm)*100;
+      const pred=$('h_pub').value==='ext'&&!isNaN(eNext)&&eNext>=K.DATUM?`\n\n*Prakiraan Besok Pagi*\nElevasi Danau = ${fx(eNext,3)} Mdpl`:'';
+      if($('h_pub').value==='ext'&&isNaN(eNext))notes.push('Publikasi External tanpa prakiraan besok pagi: bagian prakiraan tidak ditampilkan.');
+      text=`*Laporan Data Hidrologi PLTA Poso*\nTanggal ${date} pukul 16:00\n\nElevasi Danau = ${fx(eNewPm,3)} Mdpl\n${status(eNewPm-eOldPm,'sore kemarin')}\n${status(eNewPm-eNewAm,'pagi hari ini')}\n\nInflow Danau rata" = ${fx(infl,2)} m³/s\nOutflow Dam rata" = ${fx(out,2)} m³/s\n( _Record data 24 jam terakhir_ )${pred}`;
+    }
+    if(Math.abs(move)>30)notes.push('Pergerakan '+fx(move,1)+' cm/24 jam, tidak biasa. Cek input elevasi.');
+    if(infl<0)notes.push('Inflow negatif ('+fx(infl,2)+' m³/s). Cek outflow atau elevasi.');
+    resBox('hRes',[['Elevasi',fx(eNow,3),'mdpl'],['Inflow',fx(infl,2),'m³/s'],['Pergerakan 24 jam',(move>0?'+':'')+fx(move,1),'cm']]);
+    $('hNote').textContent=notes.join(' ');showRep('hRep',text);$('hOut').hidden=false;$('hOut').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){if(e!==0)throw e;toast('Lengkapi isian bertanda merah')}};
+
+/* ---------- CURAH HUJAN ---------- */
+$('btnHujan').onclick=()=>{
+  const raw=ST.map(s=>$('r_'+s.k).value.trim()),vals=raw.map(num),mark=ST.map(s=>$('r_'+s.k+'_on').checked?'':'*');
+  const show=raw.map((r,i)=>isNaN(vals[i])?'0.0':String(vals[i]));
+  const avg=thiessen(vals),avgMark=mark.slice(0,5).includes('*')?'*':'';
+  const date=tgl($('r_date').value||todayISO());const notes=[];
+  if(raw.some(r=>r===''))notes.push('Stasiun kosong dihitung 0.0 mm.');
+  if(vals.some(v=>v<0))notes.push('Ada nilai negatif, cek input.');
+  if(vals.some(v=>v>200))notes.push('Ada nilai > 200 mm/hari, pastikan benar.');
+  const ca=ST.map((s,i)=>s.ca?`- ${s.n} = ${show[i]} mm${mark[i]} `:null).filter(Boolean).join('\n');
+  const hil=`- Sulewana = ${show[5]} mm${mark[5]} \n- Pandiri = ${show[6]} mm${mark[6]}`;
+  let text;
+  if($('r_join').checked){
+    if(!lastPagi){toast('Hitung laporan hidrologi pagi dulu');return}
+    text=`*Laporan Data Curah Hujan dan Hidrologi PLTA Poso*\nTanggal ${date} pukul 0${lastPagi.t}:00\n\n*Data Curah Hujan*\nCatchment Area Danau:\n${ca}\nHilir Sungai Poso:\n${hil} \n\n*Data Hidrologi*\nElevasi Danau = ${lastPagi.elev} Mdpl\n${lastPagi.st}\nInflow Danau rata" = ${fx(lastPagi.infl,2)} m³/s\nOutflow Dam rata" = ${fx(lastPagi.out,2)} m³/s\n( _Record data 24 jam terakhir_ )`;
+    if(lastPagi.date!==date)notes.push('Tanggal laporan hidrologi pagi ('+lastPagi.date+') berbeda dengan tanggal curah hujan.');
+  }else text=`*Laporan Data Curah Hujan di Lingkungan Sekitar PLTA Poso*\nTanggal ${date}\n\nCatchment Area Danau:\n${ca}\n- _Rata" CA_ = ${fx(avg,2)} mm${avgMark} \nHilir Sungai Poso:\n${hil}`;
+  resBox('rRes',[['Rata-rata CA (Thiessen)',fx(avg,2),'mm'],['Maks stasiun',fx(Math.max(...vals.map(v=>isNaN(v)?0:v)),1),'mm']]);
+  $('rNote').textContent=notes.join(' ');showRep('rRep',text);$('rOut').hidden=false;$('rOut').scrollIntoView({behavior:'smooth',block:'start'})};
+
+/* ---------- BMKG ---------- */
+let bmkg=null;
+const DEFAULT_PROXY='https://script.google.com/macros/s/AKfycbxFwhA8r0gXk3VolVnyn36tm3Ze3RVH3531YJlgfg_66iDoTAXjpsEpZYTzRKYrj_cOWA/exec';
+function proxyUrl(){return ($('cfg_url').value||'').trim()||DEFAULT_PROXY}
+function jsonp(url){return new Promise((res,rej)=>{const cb='bmkg_cb_'+Date.now();const s=document.createElement('script');const t=setTimeout(()=>{cleanup();rej(new Error('timeout'))},20000);
+  function cleanup(){clearTimeout(t);delete window[cb];s.remove()}window[cb]=d=>{cleanup();res(d)};s.onerror=()=>{cleanup();rej(new Error('jsonp gagal'))};s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;document.head.appendChild(s)})}
+async function getBmkg(force){const u=proxyUrl();if(!u)throw new Error('URL Apps Script belum diisi (menu Setelan).');
+  const full=u+(u.includes('?')?'&':'?')+(force?'refresh=1':'t='+Date.now());
+  try{const r=await fetch(full,{redirect:'follow'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
+  catch(e){try{return await jsonp(u+(force?'?refresh=1':''))}catch(e2){throw new Error(IN_IFRAME?'Mode pratinjau Claude memblokir koneksi luar. Jalankan dari GitHub Pages.':'Tidak bisa terhubung ke proxy ('+e.message+').')}}}
+function setDot(ok){$('dot').className='dot '+(ok?'on':'off')}
+function applyBmkg(announce){if(!bmkg)return;const n=+$('p_n').value,d0=$('p_date').value||todayISO();let filled=0,partial=[],missing=[];
+  for(let i=0;i<n;i++){const date=addDays(d0,i);let dayFilled=0;
+    ST.forEach(s=>{const st=bmkg.stations.find(x=>x.key===s.k);const el=$(`p_r${i}_${s.k}`);if(!el||!st||st.error)return;const d=st.days.find(x=>x.date===date);
+      if(d){el.value=fx(d.rain,1);store[el.id]=el.value;el.classList.add('auto');if(!d.complete){el.classList.add('partial');el.title='Parsial: '+d.slots+'/8 slot 3-jam';}filled++;dayFilled++}});
+    const sum=$('p_sum_'+i);const any=bmkg.stations.find(x=>!x.error&&x.days.find(d=>d.date===date));const dd=any&&any.days.find(d=>d.date===date);
+    if(sum)sum.textContent=dayFilled?('BMKG'+(dd&&!dd.complete?' · parsial':'')):'manual';
+    if(dayFilled&&dd&&!dd.complete)partial.push(tgl(date)+' ('+dd.slots+'/8 slot)');if(!dayFilled)missing.push(tgl(date))}
+  save();const errs=bmkg.stations.filter(s=>s.error).map(s=>s.name+': '+s.error);
+  const msg=[partial.length?'Parsial (hanya jam tersisa): '+partial.join(', ')+'.':'',missing.length?'Belum ada data BMKG untuk '+missing.join(', ')+', isi manual.':'',errs.length?'Gagal: '+errs.join('; '):''].filter(Boolean).join(' ');
+  $('bmkgNote').textContent=msg;if(announce)toast(filled+' nilai hujan diisi dari BMKG');
+  const dates=[...new Set(bmkg.stations.flatMap(s=>s.days.map(d=>d.date)))].sort();
+  $('bmkgTbl').hidden=false;$('bmkgTbl').innerHTML=`<h3>Total hujan BMKG per tanggal (WITA)</h3><div class="scroll"><table class="mini"><thead><tr><th>Stasiun</th>${dates.map(d=>`<th>${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}</tr></thead><tbody>${bmkg.stations.map(s=>`<tr><td>${s.name}</td>${dates.map(dt=>{const d=s.days.find(x=>x.date===dt);return `<td>${d?fx(d.rain,1)+(d.complete?'':'ᵖ'):'–'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><p class="mut" style="margin:8px 0 0">mm, jumlah tp tiap 3 jam. ᵖ = hari parsial. Sumber: BMKG (data.bmkg.go.id), diambil ${bmkg.fetchedAt}${bmkg.cached?' (cache)':''}.</p>`}
+$('btnBmkg').onclick=async()=>{$('bmkgStat').textContent='Mengambil…';
+  try{bmkg=await getBmkg(false);if(!bmkg.ok)throw new Error(bmkg.error||'Semua stasiun gagal');setDot(1);$('bmkgStat').innerHTML='<span class="ok">✓ '+bmkg.fetchedAt+'</span>';applyBmkg(true)}
+  catch(e){setDot(0);$('bmkgStat').textContent='';$('bmkgNote').textContent=e.message}};
+
+/* ---------- PRAKIRAAN ---------- */
+$('btnPrakira').onclick=()=>{const root=$('tab-prakira');clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+  const n=+$('p_n').value,d0=$('p_date').value||todayISO(),useE=$('p_useElev').checked,useR=$('p_useRain').checked,notes=[];
+  if(!useE&&!useR)return toast('Pilih minimal satu isi laporan');
+  try{
+    let text='',caps=[],rains=[];
+    if(useE){const es=[];for(let i=0;i<n;i++)es.push(need('p_e'+i,{elev:1}));
+      caps=es.map(cap);
+      text=`*Laporan Data Analisis Kondisi Hidrologi PLTA Poso*\nTanggal ${tgl(d0)}\n\nElevasi Danau = ${fx(es[0],3)} Mdpl\nCapacity Outflow = ${fx(caps[0],2)} m³/s`;
+      for(let i=1;i<n;i++)text+=`\n\nPrakiraan ${tgl(addDays(d0,i))}\nElevasi Danau = ${fx(es[i],3)} Mdpl\nCapacity Outflow = ${fx(caps[i],2)} m³/s`;
+      if(es.some(e=>e<CAP_MIN))notes.push('Elevasi < '+CAP_MIN+' mdpl: di luar kurva capacity outflow (kurva berbalik naik), hasil tidak valid.');
+      for(let i=1;i<n;i++)if(Math.abs(es[i]-es[i-1])>0.3)notes.push('Lompatan elevasi > 30 cm/hari di hari ke-'+(i+1)+', cek angka.')}
+    if(useR){text+=(text?'\n\n':'')+'*Data Prakiraan Cuaca*';let anyAuto=false,anyPart=false;
+      for(let i=0;i<n;i++){const v=ST.map(s=>{const el=$(`p_r${i}_${s.k}`);if(el.classList.contains('auto'))anyAuto=true;if(el.classList.contains('partial'))anyPart=true;return num(el.value)});
+        if(v.every(isNaN))notes.push(tgl(addDays(d0,i))+': hujan belum diisi, tercetak 0.0 mm.');
+        const a=thiessen(v);rains.push(a);const sh=v.map(x=>isNaN(x)?'0.0':fx(x,1));
+        text+=`\n\n_Tanggal ${tgl(addDays(d0,i))} _\nCatchment Area Danau:\n${ST.map((s,j)=>s.ca?`- ${s.n} = ${sh[j]} mm`:null).filter(Boolean).join('\n')}\n- _Rata" CA_ = ${fx(a,1)} mm\nHilir Sungai Poso:\n- Sulewana = ${sh[5]} mm\n- Pandiri = ${sh[6]} mm`}
+      if(anyAuto&&bmkg)text+=`\n\n_Sumber prakiraan hujan: BMKG (${bmkg.fetchedAt})${anyPart?', hari pertama parsial':''}_`}
+    resBox('pRes',[...(useE?[['Capacity Outflow hari ini',fx(caps[0],1),'m³/s']]:[]),...(useR?[['Hujan CA hari ini',fx(rains[0],1),'mm'],['Total CA '+n+' hari',fx(rains.reduce((a,b)=>a+b,0),1),'mm']]:[])]);
+    $('pNote').textContent=notes.join(' ');showRep('pRep',text);$('pOut').hidden=false;$('pOut').scrollIntoView({behavior:'smooth',block:'start'})
+  }catch(e){if(e!==0)throw e;toast('Lengkapi elevasi tiap hari')}};
+
+/* ---------- SIMULASI ---------- */
+$('btnSimFrom').onclick=()=>{if(!lastPagi)return toast('Belum ada laporan pagi');$('s_in').value=fx(lastPagi.infl,2);$('s_elev').value=lastPagi.elev;$('s_elev').dispatchEvent(new Event('input',{bubbles:true}));store.s_in=$('s_in').value;save();toast('Diisi dari laporan pagi')};
+$('btnSimul').onclick=()=>{const root=$('tab-simul');clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'));
+  try{const E=need('s_energy'),e0=need('s_elev',{elev:1}),Q=need('s_in'),k=isNaN(num($('s_k').value))?K.WATER:num($('s_k').value);
+    const out=k*E,e1=fromSto((K.SEC*Q-K.SEC*out)+toSto(e0)),h1=(e1-K.DATUM)*100,h0=(e0-K.DATUM)*100,mv=h1-h0;
+    const st=mv>1e-9?'Naik '+fx(mv,1):mv<-1e-9?'Turun '+fx(-mv,1):'Tetap. 0';
+    resBox('sRes',[['Elevasi besok',fx(e1,3),'mdpl'],['Tinggi besok',fx(h1,1),'cm'],['Pergerakan',st,'cm'],['Outflow',fx(out,2),'m³/s']]);
+    showRep('sRep',`*Simulasi Penggunaan Air PLTA Poso*\nEnergi = ${fx(E,2)} GWh (Outflow ${fx(out,2)} m³/s)\nInflow = ${fx(Q,2)} m³/s\nElevasi hari ini = ${fx(e0,3)} Mdpl\nElevasi besok = ${fx(e1,3)} Mdpl\n( _${st} cm_ )`);
+    $('sOut').hidden=false;$('sOut').scrollIntoView({behavior:'smooth',block:'start'})
+  }catch(e){if(e!==0)throw e;toast('Lengkapi isian bertanda merah')}};
+
+/* ---------- reset ---------- */
+const RESET={hidro:'#tab-hidro',hujan:'#tab-hujan',prakira:'#tab-prakira',simul:'#tab-simul'};
+document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>{const root=document.querySelector(RESET[b.dataset.reset]);
+  root.querySelectorAll('input').forEach(el=>{if(el.type==='date'||el.id==='s_k'||el.id==='e_fish')return;if(el.type==='checkbox'){if(el.id.endsWith('_on')){el.checked=true;store[el.id]=true}return}el.value='';el.classList.remove('bad','auto','partial');delete store[el.id]});
+  clearErr(root);root.querySelectorAll('[id$="Out"]').forEach(x=>{if(x.id!=='estOut')x.hidden=true});save();toast('Isian dikosongkan')});
+$('btnWipe').onclick=()=>{store={};save();location.reload()};
+
+/* ---------- setelan ---------- */
+$('constTbl').innerHTML='<thead><tr><th>Parameter</th><th>Nilai</th></tr></thead><tbody>'+[
+ ['Datum papan duga',K.DATUM+' mdpl'],['Storage linear: offset',K.OFFSET],['Storage linear: pengali',K.MULT],['Koef. penggunaan air',K.WATER+' m³/s per GWh'],
+ ['Luas DAS (Thiessen)',K.CATCH+' km²'],...ST.filter(s=>s.ca).map(s=>['Poligon '+s.n,s.w+' km²']),['Fishway',K.FISH+' m³/s'],['Koef. konversi',K.KNEW+' → '+K.KOLD]
+].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')+'</tbody>';
+$('btnTest').onclick=async()=>{$('testOut').textContent='Menguji…';
+  try{const d=await getBmkg(true);setDot(d.ok);bmkg=d;$('testOut').innerHTML=(d.ok?'<span class="ok">✓ Terhubung.</span> ':'')+d.stations.map(s=>s.name+': '+(s.error?'gagal ('+s.error+')':s.days.length+' hari')).join(' · ')}
+  catch(e){setDot(0);$('testOut').textContent=e.message}};
+
+/* ---------- tab ---------- */
+const TABS=[['hidro','Hidrologi','M4 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4 2 6 0M4 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4 2 6 0M12 3v8m-3-3 3 3 3-3'],
+ ['hujan','Hujan','M7 15a5 5 0 1 1 3-9 6 6 0 0 1 11 3 4 4 0 0 1-2 6zM8 18l-1 3m5-3-1 3m5-3-1 3'],
+ ['prakira','Prakiraan','M3 3v18h18M7 15l4-4 3 3 5-6'],
+ ['simul','Simulasi','M4 6h16M4 12h16M4 18h16M8 4v4m8 2v4m-6 2v4'],
+ ['set','Setelan','M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z']];
+$('nav').innerHTML=TABS.map(([k,l,p])=>`<button role="tab" id="t_${k}" aria-controls="tab-${k}" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>${l}</button>`).join('');
+const go=k=>{TABS.forEach(([t])=>{$('tab-'+t).hidden=t!==k;$('t_'+t).setAttribute('aria-selected',t===k)});store._tab=k;save();window.scrollTo(0,0)};
+TABS.forEach(([k])=>$('t_'+k).onclick=()=>go(k));
+
+/* ---------- init ---------- */
+['h_date','r_date','p_date'].forEach(id=>{if(!store[id])store[id]=todayISO()});
+restore(document);renderShift();renderDays();go(store._tab||'hidro');
+if(IN_IFRAME)$('hdrSub').textContent='Pratinjau · BMKG aktif setelah di GitHub Pages';
+if('serviceWorker' in navigator&&!IN_IFRAME&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+}
+</script>
+</body>
+</html>
