@@ -106,7 +106,7 @@ details.day>div{padding:0 14px 12px}
 .mini th,.mini td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:right;white-space:nowrap}.mini th:first-child,.mini td:first-child{text-align:left}
 .scroll{overflow-x:auto}
 .box{border:1px dashed var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
-.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#152020;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast{position:fixed;left:50%;bottom:calc(132px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#152020;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.show{opacity:1}
 @media(prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
@@ -155,11 +155,14 @@ details.day>div{padding:0 14px 12px}
     <p class="sub">Rata-rata catchment area metode Thiessen (luas DAS 1754.7 km²). Hilir tidak masuk rata-rata. Hapus centang "online" kalau data stasiun tidak terkirim (ditandai *).</p>
     <div class="live"><i></i>Hasil dihitung otomatis saat mengetik</div>
     <div class="f"><label for="r_date">Tanggal</label><div class="datebox"><button type="button" data-step="-1" data-for="r_date" aria-label="Hari sebelumnya">‹</button><div class="dv"><b id="r_date_lbl">–</b><small id="r_date_rel"></small><input type="date" id="r_date" aria-label="Pilih tanggal"></div><button type="button" data-step="1" data-for="r_date" aria-label="Hari berikutnya">›</button></div></div>
+    <div class="btns" style="margin:0 0 6px"><button class="btn sm" type="button" id="btnTele">⬇ Ambil data telemetri</button><span class="mut" id="teleStat"></span></div>
+    <div class="note" id="teleNote"></div>
     <div class="grp">Catchment Area Danau</div><div class="grid2" id="rCA"></div>
     <div class="grp">Hilir Sungai Poso</div><div class="grid2" id="rHilir"></div>
     <label class="chk" style="margin:8px 0"><input type="checkbox" id="r_join"> Gabung dengan laporan hidrologi pagi (format "Curah Hujan dan Hidrologi")</label>
     <div class="btns"><button class="btn pri" type="button" id="btnHujan">Hitung</button><button class="btn" type="button" data-reset="hujan">Reset</button></div>
   </div>
+  <div id="teleTbl" class="card" hidden></div>
   <div id="rOut" hidden>
     <div class="res" id="rRes"></div>
     <div class="note" id="rNote"></div>
@@ -407,7 +410,7 @@ $('btnHidro').onclick=()=>calcHidro(false);
 /* ---------- CURAH HUJAN ---------- */
 function calcHujan(quiet){
   const raw=ST.map(s=>$('r_'+s.k).value.trim());if(quiet&&raw.every(r=>r===''))return;const vals=raw.map(num),mark=ST.map(s=>$('r_'+s.k+'_on').checked?'':'*');
-  const show=raw.map((r,i)=>isNaN(vals[i])?'0.0':String(vals[i]));
+  const show=raw.map((r,i)=>isNaN(vals[i])?'0.0':r.replace(',','.'));
   const avg=thiessen(vals),avgMark=mark.slice(0,5).includes('*')?'*':'';
   const date=tgl($('r_date').value||todayISO());const notes=[];
   if(raw.some(r=>r===''))notes.push('Stasiun kosong dihitung 0.0 mm.');
@@ -424,6 +427,30 @@ function calcHujan(quiet){
   resBox('rRes',[['Rata-rata CA (Thiessen)',fx(avg,2),'mm'],['Maks stasiun',fx(Math.max(...vals.map(v=>isNaN(v)?0:v)),1),'mm']]);
   $('rNote').textContent=notes.join(' ');showRep('rRep',text);reveal('rOut',quiet)}
 $('btnHujan').onclick=()=>calcHujan(false);
+
+/* ---------- TELEMETRI (Firebase realtime, akumulasi 07:00-07:00) ---------- */
+const TELE_URL='https://hydrologyapp-posoenergy-default-rtdb.asia-southeast1.firebasedatabase.app/telemetrySystem/realtime.json';
+const TELE_KEY={tentena:'AWS_TENTENA',salukaia:'ARR_SALUKAIA',panjo:'ARR_PANJO',mayasari:'ARR_MAYASARI',tindoli:'ARR_TINDOLI',sulewana:'ARR_SULEWANA',pandiri:'ARR_PANDIRI'};
+const witaTs=s=>new Date(String(s).replace(' ','T')+'+08:00');
+const wita=d=>{const w=new Date(d.getTime()+8*36e5);return{iso:w.toISOString().slice(0,10),h:w.getUTCHours(),m:w.getUTCMinutes()}};
+$('btnTele').onclick=async()=>{$('teleStat').textContent='Mengambil…';$('teleNote').textContent='';
+  try{const r=await fetch((window.__TELE_URL||TELE_URL)+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();
+    const rows=[];let latest=null,nOff=0;
+    ST.forEach(s=>{const st=d&&d[TELE_KEY[s.k]],el=$('r_'+s.k),on=$('r_'+s.k+'_on');
+      if(!st||!st.values){rows.push([s.n,'–','–','tidak ada','']);on.checked=false;store[on.id]=false;nOff++;return}
+      const v=st.values,ts=v.updated?witaTs(v.updated):null,age=ts?(Date.now()-ts)/36e5:Infinity,stale=age>2,online=!!v.isOnline&&!stale;
+      if(typeof v.rainfall==='number'){el.value=fx(v.rainfall,1);store[el.id]=el.value;el.classList.add('auto')}
+      on.checked=online;store[on.id]=online;if(!online)nOff++;
+      if(ts&&!isNaN(ts)&&(!latest||ts>latest))latest=ts;
+      rows.push([s.n,typeof v.rainfall==='number'?fx(v.rainfall,1):'–',v.updated?String(v.updated).slice(11,16):'–',online?'online':stale?'data lama':'offline',v.voltage!=null?fx(v.voltage,1)+' V':'']);
+    });save();
+    let per='';if(latest){const p=wita(latest),start=p.h>=7?p.iso:addDays(p.iso,-1),hm=String(p.h).padStart(2,'0')+':'+String(p.m).padStart(2,'0');
+      const full=(p.h===6&&p.m>=30);per=`Periode 07:00 ${tglS(start)} → ${hm} ${tglS(p.iso)}`;
+      $('teleNote').textContent=per+(full?'. Hampir 24 jam penuh.':'. Akumulasi masih berjalan (belum 24 jam). Untuk total harian, ambil sekitar 06:30–06:59, karena nilai reset pukul 07:00.')+(nOff?` ${nOff} stasiun offline/data lama, ditandai *.`:'')}
+    $('teleStat').innerHTML='<span class="ok">✓ '+(latest?wita(latest).iso.slice(5).split('-').reverse().join('/')+' '+String(wita(latest).h).padStart(2,'0')+':'+String(wita(latest).m).padStart(2,'0')+' WITA':'')+'</span>';
+    $('teleTbl').hidden=false;$('teleTbl').innerHTML='<h3>Telemetri curah hujan</h3><div class="scroll"><table class="mini"><thead><tr><th>Stasiun</th><th>mm</th><th>Jam</th><th>Status</th><th>Baterai</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('')+'</tbody></table></div><p class="mut" style="margin:8px 0 0">Akumulasi 07:00–07:00. Sumber: Sistem Telemetering PLTA Poso. Status "data lama" kalau update terakhir lebih dari 2 jam lalu.</p>';
+    calcHujan(true);toast('7 stasiun diisi dari telemetri');
+  }catch(e){$('teleStat').textContent='';$('teleNote').textContent='Gagal ambil telemetri ('+e.message+'). Isi manual.'}};
 
 /* ---------- BMKG ---------- */
 let bmkg=null;
