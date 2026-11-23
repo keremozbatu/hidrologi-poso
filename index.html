@@ -10,6 +10,16 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1290x2796.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1179x2556.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1170x2532.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1242x2688.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1206x2622.png">
+<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1320x2868.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash-1284x2778.png">
 <title>Hidrologi PLTA Poso</title>
 <style>
 /*
@@ -30,6 +40,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-app
 header{background:var(--teal);color:#fff;padding:calc(10px + env(safe-area-inset-top)) max(4vw,16px) 12px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
 header h1{font-size:18px;margin:0;font-weight:650;flex:1}
 header small{display:block;font-weight:400;opacity:.8;font-size:13px}
+.hlogo{flex:none;width:auto;height:44px;background:#fff;border-radius:10px;padding:3px 7px;box-sizing:content-box}
 .dot{width:10px;height:10px;border-radius:50%;background:#9fb0b0;flex:none}.dot.on{background:#7fe3a0}.dot.off{background:#ffb950}
 main{max-width:720px;margin:0 auto;padding:14px max(3vw,12px)}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:6}
@@ -101,7 +112,7 @@ details.day>div{padding:0 14px 12px}
 </style>
 </head>
 <body>
-<header><div class="dot" id="dot" title="Status BMKG"></div><h1>Hidrologi PLTA Poso<small id="hdrSub">Kalkulator &amp; laporan WA</small></h1></header>
+<header><img class="hlogo" src="logo.svg" alt="Poso Energy" width="28" height="47"><h1>Hidrologi PLTA Poso<small id="hdrSub">Kalkulator &amp; laporan WA</small></h1><div class="dot" id="dot" title="Status BMKG"></div></header>
 
 <nav role="tablist" id="nav"></nav>
 
