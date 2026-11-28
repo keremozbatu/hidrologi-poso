@@ -517,13 +517,14 @@ function loadModel(){if(window.PosoEngine&&window.POSO_STATIC&&window.PosoEngine
 async function getObs(){if(fcObs&&Date.now()-fcObs.at<6e5)return fcObs;
   const r=await fetch(window.POSO_API+'&t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('data Sheet HTTP '+r.status);
   const j=await r.json();if(!j.data||!j.data.length)throw new Error('data Sheet kosong');fcObs={rows:j.data,at:Date.now()};return fcObs}
+const isFcAuto=el=>!!el&&(el.classList.contains('auto')||!!(store._fcAuto&&el.value.trim()&&store._fcAuto[el.id]===el.value.trim()));
 function fcSoon(){clearTimeout(fcT);fcT=setTimeout(runForecast,500)}
 async function runForecast(){if(!bmkg)return;const card=$('fcCard');card.hidden=false;$('fcNote').textContent='Menghitung prakiraan inflow & elevasi…';
   try{await loadModel();const ob=await getObs();
     const rows=ob.rows.filter(r=>r.tma!=null),last=rows[rows.length-1];
     const rainExtra={};ob.rows.forEach(r=>{if(r.ch!=null)rainExtra[r.t]=r.ch});
     const q7=avg(rows.slice(-7).map(r=>r.q).filter(v=>v!=null)),i7=avg(rows.slice(-7).map(r=>r.i).filter(v=>v!=null));
-    const n=+$('p_n').value,d0=$('p_date').value||todayISO(),e0=num($('p_e0').value),e0auto=$('p_e0').classList.contains('auto');
+    const n=+$('p_n').value,d0=$('p_date').value||todayISO(),e0=num($('p_e0').value),e0auto=isFcAuto($('p_e0'));
     let start,h0,startTxt;
     if(!isNaN(e0)&&e0>500&&!e0auto){start=d0;h0=e0;startTxt='elevasi hari ini yang diisi ('+fx(e0,3)+' m)'}
     else{start=last.t;h0=last.tma;startTxt='data Sheet '+tglS(last.t)+' ('+fx(last.tma,3)+' m)'}
@@ -543,10 +544,11 @@ async function runForecast(){if(!bmkg)return;const card=$('fcCard');card.hidden=
     if(!ds.length)throw new Error('belum ada hujan prakiraan setelah '+tglS(start));
     // isi elevasi otomatis (hanya kolom kosong / hasil otomatis sebelumnya)
     fcFilling=true;
-    for(let i=0;i<n;i++){const el=$('p_e'+i),D=addDays(d0,i);if(!el||(el.value.trim()&&!el.classList.contains('auto')))continue;
+    for(let i=0;i<n;i++){const el=$('p_e'+i),D=addDays(d0,i);if(!el||(el.value.trim()&&!isFcAuto(el)))continue;
       let H=null;if(D===start)H=h0;else{const d=r.days.find(x=>x.t===D);if(d)H=d.H}
       if(H==null&&D===last.t)H=last.tma;
-      if(H!=null){el.value=fx(H,3);el.dispatchEvent(new Event('input',{bubbles:true}));el.classList.add('auto')}}
+      if(H!=null){el.value=fx(H,3);el.dispatchEvent(new Event('input',{bubbles:true}));el.classList.add('auto');(store._fcAuto=store._fcAuto||{})[el.id]=el.value}}
+    save();
     fcFilling=false;
     $('fcSub').textContent='Hujan '+fcRes.src+' → model hujan–limpasan Danau Poso → muka air dengan outflow '+fx(O,1)+' m³/s. Mulai dari '+startTxt+'.';
     let h=h0;
@@ -561,10 +563,10 @@ async function runForecast(){if(!bmkg)return;const card=$('fcCard');card.hidden=
     $('fcNote').textContent=notes.join(' ');
     calcPrakira(true)
   }catch(e){fcFilling=false;fcRes=null;$('fcTbl').innerHTML='';
-    for(let i=1;i<+$('p_n').value;i++){const el=$('p_e'+i);if(el&&el.classList.contains('auto')){el.value='';el.dispatchEvent(new Event('input',{bubbles:true}))}}
+    for(let i=1;i<+$('p_n').value;i++){const el=$('p_e'+i);if(isFcAuto(el)){el.value='';el.dispatchEvent(new Event('input',{bubbles:true}))}}
     $('fcNote').textContent='Prakiraan inflow & elevasi gagal: '+e.message}}
 $('p_out').addEventListener('input',()=>{if(bmkg)fcSoon()});
-const fcLine=(D,i)=>{if(!fcRes||!$('p_e'+i).classList.contains('auto'))return '';const d=fcRes.days.find(x=>x.t===D);return d?`\nInflow Danau = ${fx(d.I,2)} m³/s`:''};
+const fcLine=(D,i)=>{if(!fcRes||!isFcAuto($('p_e'+i)))return '';const d=fcRes.days.find(x=>x.t===D);return d?`\nInflow Danau = ${fx(d.I,2)} m³/s`:''};
 
 /* ---------- PRAKIRAAN ---------- */
 function calcPrakira(quiet){QUIET=!!quiet;const root=$('tab-prakira');if(!quiet){clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'))}
@@ -576,7 +578,7 @@ function calcPrakira(quiet){QUIET=!!quiet;const root=$('tab-prakira');if(!quiet)
       caps=es.map(cap);
       text=`*Laporan Data Analisis Kondisi Hidrologi PLTA Poso*\nTanggal ${tgl(d0)}\n\nElevasi Danau = ${fx(es[0],3)} Mdpl\nCapacity Outflow = ${fx(caps[0],2)} m³/s`;
       for(let i=1;i<n;i++)text+=`\n\nPrakiraan ${tgl(addDays(d0,i))}\nElevasi Danau = ${fx(es[i],3)} Mdpl\nCapacity Outflow = ${fx(caps[i],2)} m³/s`+fcLine(addDays(d0,i),i);
-      if(fcRes&&[...Array(n).keys()].some(i=>i>0&&$('p_e'+i).classList.contains('auto')))text+=`\n\n_Prakiraan elevasi & inflow: model hujan–limpasan, hujan ${fcRes.src} (${fcRes.at}), outflow ${fx(fcRes.O,1)} m³/s_`;
+      if(fcRes&&[...Array(n).keys()].some(i=>i>0&&isFcAuto($('p_e'+i))))text+=`\n\n_Prakiraan elevasi & inflow: model hujan–limpasan, hujan ${fcRes.src} (${fcRes.at}), outflow ${fx(fcRes.O,1)} m³/s_`;
       if(es.some(e=>e<CAP_MIN))notes.push('Elevasi < '+CAP_MIN+' mdpl: di luar kurva capacity outflow (kurva berbalik naik), hasil tidak valid.');
       for(let i=1;i<n;i++)if(Math.abs(es[i]-es[i-1])>0.3)notes.push('Lompatan elevasi > 30 cm/hari di hari ke-'+(i+1)+', cek angka.')}
     if(useR){text+=(text?'\n\n':'')+'*Data Prakiraan Cuaca*';let anyAuto=false,anyPart=false;
