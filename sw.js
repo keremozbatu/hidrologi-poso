@@ -1,5 +1,5 @@
 // Cache app shell supaya kalkulator jalan tanpa sinyal. Request ke Apps Script tidak di-cache.
-const CACHE = 'hidro-poso-v2';
+const CACHE = 'hidro-poso-v3';
 const SHELL = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png', './logo.svg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

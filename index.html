@@ -174,13 +174,13 @@ details.day>div{padding:0 14px 12px}
 <section id="tab-prakira" role="tabpanel" hidden>
   <div class="card">
     <h2>Analisis &amp; Prakiraan</h2>
-    <p class="sub">Capacity Outflow dari elevasi (polinomial APK) + prakiraan hujan per stasiun. Hujan bisa diambil otomatis dari BMKG (sekitar 3 hari ke depan).</p>
+    <p class="sub">Capacity Outflow dari elevasi (polinomial APK) + prakiraan hujan per stasiun. Hujan bisa diambil otomatis dari BMKG (sekitar 3 hari ke depan) atau Open-Meteo (sampai 16 hari, akumulasi 07:00–07:00 WITA).</p>
     <div class="live"><i></i>Hasil dihitung otomatis saat mengetik</div>
     <div class="f"><label for="p_date">Tanggal mulai</label><div class="datebox"><button type="button" data-step="-1" data-for="p_date" aria-label="Hari sebelumnya">‹</button><div class="dv"><b id="p_date_lbl">–</b><small id="p_date_rel"></small><input type="date" id="p_date" aria-label="Pilih tanggal"></div><button type="button" data-step="1" data-for="p_date" aria-label="Hari berikutnya">›</button></div></div>
     <div class="f"><span class="lbl">Jumlah hari</span><div class="seg" data-input="p_n"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div><input type="hidden" id="p_n" value="3"></div>
     <label class="chk"><input type="checkbox" id="p_useElev" checked> Sertakan elevasi &amp; capacity outflow</label>
     <label class="chk"><input type="checkbox" id="p_useRain" checked> Sertakan prakiraan cuaca (curah hujan)</label>
-    <div class="btns" style="margin:12px 0"><button class="btn sm" type="button" id="btnBmkg">⬇ Ambil hujan BMKG</button><span class="mut" id="bmkgStat"></span></div>
+    <div class="btns" style="margin:12px 0"><button class="btn sm" type="button" id="btnBmkg">⬇ Ambil hujan BMKG</button><button class="btn sm" type="button" id="btnOm">⬇ Ambil hujan Open-Meteo</button><span class="mut" id="bmkgStat"></span></div>
     <div class="note" id="bmkgNote"></div>
     <div id="pDays"></div>
     <div class="btns"><button class="btn pri" type="button" id="btnPrakira">Hitung</button><button class="btn" type="button" data-reset="prakira">Reset</button></div>
@@ -239,7 +239,8 @@ details.day>div{padding:0 14px 12px}
 {
 /* ---------- konstanta dari APK ---------- */
 const K={DATUM:509.567,OFFSET:509.021223993045,MULT:2.77466334098742E-9,SEC:86400,WATER:27.04,CATCH:1754.7,FISH:5,KNEW:2.25,KOLD:2.50};
-const ST=[{k:'tentena',n:'Tentena',w:152.96,ca:1},{k:'salukaia',n:'Salukaia',w:527.99,ca:1},{k:'panjo',n:'Panjo',w:456.65,ca:1},{k:'mayasari',n:'Mayasari',w:374.35,ca:1},{k:'tindoli',n:'Tindoli',w:242.75,ca:1},{k:'sulewana',n:'Sulewana',w:0,ca:0},{k:'pandiri',n:'Pandiri',w:0,ca:0}];
+// lat/lon ARR dari Telemetering System.kml (dipakai Open-Meteo)
+const ST=[{k:'tentena',n:'Tentena',w:152.96,ca:1,lat:-1.766667,lon:120.637194},{k:'salukaia',n:'Salukaia',w:527.99,ca:1,lat:-1.864926,lon:120.529498},{k:'panjo',n:'Panjo',w:456.65,ca:1,lat:-2.004761,lon:120.596639},{k:'mayasari',n:'Mayasari',w:374.35,ca:1,lat:-2.147053,lon:120.735684},{k:'tindoli',n:'Tindoli',w:242.75,ca:1,lat:-1.990076,lon:120.689871},{k:'sulewana',n:'Sulewana',w:0,ca:0,lat:-1.664811,lon:120.655536},{k:'pandiri',n:'Pandiri',w:0,ca:0,lat:-1.516274,lon:120.754933}];
 const CAP_MIN=509.0; // titik minimum polinomial capacity outflow; di bawahnya kurva berbalik naik (tidak fisis)
 const IN_IFRAME=(()=>{try{return window.self!==window.top}catch(e){return true}})();
 const $=id=>document.getElementById(id);
@@ -450,7 +451,7 @@ $('btnTele').onclick=async()=>{$('teleStat').textContent='Mengambil…';$('teleN
   }catch(e){$('teleStat').textContent='';$('teleNote').textContent='Gagal ambil telemetri ('+e.message+'). Isi manual.'}};
 
 /* ---------- BMKG ---------- */
-let bmkg=null;
+let bmkg=null; // sumber hujan aktif: BMKG atau Open-Meteo (src)
 const DEFAULT_PROXY='https://script.google.com/macros/s/AKfycbxFwhA8r0gXk3VolVnyn36tm3Ze3RVH3531YJlgfg_66iDoTAXjpsEpZYTzRKYrj_cOWA/exec';
 function proxyUrl(){return ($('cfg_url').value||'').trim()||DEFAULT_PROXY}
 function jsonp(url){return new Promise((res,rej)=>{const cb='bmkg_cb_'+Date.now();const s=document.createElement('script');const t=setTimeout(()=>{cleanup();rej(new Error('timeout'))},20000);
@@ -460,21 +461,41 @@ async function getBmkg(force){const u=proxyUrl();if(!u)throw new Error('URL Apps
   try{const r=await fetch(full,{redirect:'follow'});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
   catch(e){try{return await jsonp(u+(force?'?refresh=1':''))}catch(e2){throw new Error(IN_IFRAME?'Mode pratinjau Claude memblokir koneksi luar. Jalankan dari GitHub Pages.':'Tidak bisa terhubung ke proxy ('+e.message+').')}}}
 function setDot(ok){$('dot').className='dot '+(ok?'on':'off')}
-function applyBmkg(announce){if(!bmkg)return;const n=+$('p_n').value,d0=$('p_date').value||todayISO();let filled=0,partial=[],missing=[];
+function applyBmkg(announce){if(!bmkg)return;const SRC=bmkg.src||'BMKG',n=+$('p_n').value,d0=$('p_date').value||todayISO();let filled=0,partial=[],missing=[];
   for(let i=0;i<n;i++){const date=addDays(d0,i);let dayFilled=0;
     ST.forEach(s=>{const st=bmkg.stations.find(x=>x.key===s.k);const el=$(`p_r${i}_${s.k}`);if(!el||!st||st.error)return;const d=st.days.find(x=>x.date===date);
-      if(d){el.value=fx(d.rain,1);store[el.id]=el.value;el.classList.add('auto');if(!d.complete){el.classList.add('partial');el.title='Parsial: '+d.slots+'/8 slot 3-jam';}filled++;dayFilled++}});
+      el.classList.remove('partial');el.title='';if(d){el.value=fx(d.rain,1);store[el.id]=el.value;el.classList.add('auto');if(!d.complete){el.classList.add('partial');el.title='Parsial: '+d.slots+'/8 slot 3-jam';}filled++;dayFilled++}});
     const sum=$('p_sum_'+i);const any=bmkg.stations.find(x=>!x.error&&x.days.find(d=>d.date===date));const dd=any&&any.days.find(d=>d.date===date);
-    if(sum)sum.textContent=dayFilled?('BMKG'+(dd&&!dd.complete?' · parsial':'')):'manual';
+    if(sum)sum.textContent=dayFilled?(SRC+(dd&&!dd.complete?' · parsial':'')):'manual';
     if(dayFilled&&dd&&!dd.complete)partial.push(tgl(date)+' ('+dd.slots+'/8 slot)');if(!dayFilled)missing.push(tgl(date))}
   save();const errs=bmkg.stations.filter(s=>s.error).map(s=>s.name+': '+s.error);
-  const msg=[partial.length?'Parsial (hanya jam tersisa): '+partial.join(', ')+'.':'',missing.length?'Belum ada data BMKG untuk '+missing.join(', ')+', isi manual.':'',errs.length?'Gagal: '+errs.join('; '):''].filter(Boolean).join(' ');
-  $('bmkgNote').textContent=msg;if(announce)toast(filled+' nilai hujan diisi dari BMKG');
+  const msg=[partial.length?'Parsial (hanya jam tersisa): '+partial.join(', ')+'.':'',missing.length?'Belum ada data '+SRC+' untuk '+missing.join(', ')+', isi manual.':'',errs.length?'Gagal: '+errs.join('; '):''].filter(Boolean).join(' ');
+  $('bmkgNote').textContent=msg;if(announce)toast(filled+' nilai hujan diisi dari '+SRC);
   const dates=[...new Set(bmkg.stations.flatMap(s=>s.days.map(d=>d.date)))].sort();
-  $('bmkgTbl').hidden=false;$('bmkgTbl').innerHTML=`<h3>Total hujan BMKG per tanggal (WITA)</h3><div class="scroll"><table class="mini"><thead><tr><th>Stasiun</th>${dates.map(d=>`<th>${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}</tr></thead><tbody>${bmkg.stations.map(s=>`<tr><td>${s.name}</td>${dates.map(dt=>{const d=s.days.find(x=>x.date===dt);return `<td>${d?fx(d.rain,1)+(d.complete?'':'ᵖ'):'–'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><p class="mut" style="margin:8px 0 0">mm, jumlah tp tiap 3 jam. ᵖ = hari parsial. Sumber: BMKG (data.bmkg.go.id), diambil ${bmkg.fetchedAt}${bmkg.cached?' (cache)':''}.</p>`}
+  $('bmkgTbl').hidden=false;$('bmkgTbl').innerHTML=`<h3>Total hujan ${SRC} per tanggal (WITA)</h3><div class="scroll"><table class="mini"><thead><tr><th>Stasiun</th>${dates.map(d=>`<th>${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}</tr></thead><tbody>${bmkg.stations.map(s=>`<tr><td>${s.name}</td>${dates.map(dt=>{const d=s.days.find(x=>x.date===dt);return `<td>${d?fx(d.rain,1)+(d.complete?'':'ᵖ'):'–'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><p class="mut" style="margin:8px 0 0">${bmkg.src==='Open-Meteo'?`mm, akumulasi 07:00–07:00 WITA (tanggal = hari mulai periode). Nilai hasil model cuaca, bukan pengukuran. Sumber: Open-Meteo (open-meteo.com), diambil ${bmkg.fetchedAt}.`:`mm, jumlah tp tiap 3 jam. ᵖ = hari parsial. Sumber: BMKG (data.bmkg.go.id), diambil ${bmkg.fetchedAt}${bmkg.cached?' (cache)':''}.`}</p>`}
 $('btnBmkg').onclick=async()=>{$('bmkgStat').textContent='Mengambil…';
-  try{bmkg=await getBmkg(false);if(!bmkg.ok)throw new Error(bmkg.error||'Semua stasiun gagal');setDot(1);$('bmkgStat').innerHTML='<span class="ok">✓ '+bmkg.fetchedAt+'</span>';applyBmkg(true)}
+  try{bmkg=await getBmkg(false);bmkg.src='BMKG';if(!bmkg.ok)throw new Error(bmkg.error||'Semua stasiun gagal');setDot(1);$('bmkgStat').innerHTML='<span class="ok">✓ '+bmkg.fetchedAt+'</span>';applyBmkg(true)}
   catch(e){setDot(0);$('bmkgStat').textContent='';$('bmkgNote').textContent=e.message}};
+
+/* ---------- OPEN-METEO ----------
+   Hujan per jam di titik ARR, dijumlah 07:00 D – 07:00 D+1 WITA (sama dengan laporan stasiun).
+   Nilai jam T = hujan 1 jam sebelum T, jadi periode D = jam 08:00 D s/d 07:00 D+1. */
+function omDays(time,prec){const sum={},n={};
+  for(let k=0;k<time.length;k++){const v=prec[k];if(v==null)continue;const t=time[k],jam=+t.slice(11,13);
+    const key=jam>=8?t.slice(0,10):addDays(t.slice(0,10),-1);sum[key]=(sum[key]||0)+v;n[key]=(n[key]||0)+1}
+  return Object.keys(sum).filter(k=>n[k]===24).sort().map(k=>({date:k,rain:Math.round(sum[k]*10)/10,complete:true}))}
+async function getOpenMeteo(){
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+ST.map(s=>s.lat).join(',')+'&longitude='+ST.map(s=>s.lon).join(',')+'&hourly=precipitation&timezone=Asia%2FMakassar&past_days=1&forecast_days=16';
+  let j;try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);j=await r.json()}
+  catch(e){throw new Error(IN_IFRAME?'Mode pratinjau Claude memblokir koneksi luar. Jalankan dari GitHub Pages.':'Tidak bisa terhubung ke Open-Meteo ('+e.message+').')}
+  if(!Array.isArray(j))j=[j];
+  const stations=ST.map((s,i)=>{const d=j[i];if(!d||!d.hourly)return{key:s.k,name:s.n,error:'tidak ada data',days:[]};
+    return{key:s.k,name:s.n,days:omDays(d.hourly.time,d.hourly.precipitation)}});
+  const fetchedAt=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Makassar',dateStyle:'short',timeStyle:'short'}).format(new Date())+' WITA';
+  return{ok:stations.some(s=>!s.error&&s.days.length),src:'Open-Meteo',fetchedAt,stations}}
+$('btnOm').onclick=async()=>{$('bmkgStat').textContent='Mengambil…';
+  try{const d=await getOpenMeteo();if(!d.ok)throw new Error('Open-Meteo tidak mengirim data');bmkg=d;$('bmkgStat').innerHTML='<span class="ok">✓ Open-Meteo '+d.fetchedAt+'</span>';applyBmkg(true)}
+  catch(e){$('bmkgStat').textContent='';$('bmkgNote').textContent=e.message}};
 
 /* ---------- PRAKIRAAN ---------- */
 function calcPrakira(quiet){QUIET=!!quiet;const root=$('tab-prakira');if(!quiet){clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'))}
@@ -493,7 +514,7 @@ function calcPrakira(quiet){QUIET=!!quiet;const root=$('tab-prakira');if(!quiet)
         if(v.every(isNaN))notes.push(tgl(addDays(d0,i))+': hujan belum diisi, tercetak 0.0 mm.');
         const a=thiessen(v);rains.push(a);const sh=v.map(x=>isNaN(x)?'0.0':fx(x,1));
         text+=`\n\n_Tanggal ${tgl(addDays(d0,i))} _\nCatchment Area Danau:\n${ST.map((s,j)=>s.ca?`- ${s.n} = ${sh[j]} mm`:null).filter(Boolean).join('\n')}\n- _Rata" CA_ = ${fx(a,1)} mm\nHilir Sungai Poso:\n- Sulewana = ${sh[5]} mm\n- Pandiri = ${sh[6]} mm`}
-      if(anyAuto&&bmkg)text+=`\n\n_Sumber prakiraan hujan: BMKG (${bmkg.fetchedAt})${anyPart?', hari pertama parsial':''}_`}
+      if(anyAuto&&bmkg)text+=`\n\n_Sumber prakiraan hujan: ${bmkg.src||'BMKG'} (${bmkg.fetchedAt})${bmkg.src==='Open-Meteo'?', akumulasi 07:00–07:00 WITA':''}${anyPart?', hari pertama parsial':''}_`}
     resBox('pRes',[...(useE?[['Capacity Outflow hari ini',fx(caps[0],1),'m³/s']]:[]),...(useR?[['Hujan CA hari ini',fx(rains[0],1),'mm'],['Total CA '+n+' hari',fx(rains.reduce((a,b)=>a+b,0),1),'mm']]:[])]);
     $('pNote').textContent=notes.join(' ');showRep('pRep',text);reveal('pOut',quiet)
   }catch(e){if(e!==0)throw e;if(quiet)$('pOut').hidden=true;else toast('Lengkapi elevasi tiap hari')}finally{QUIET=false}}
@@ -524,7 +545,7 @@ $('constTbl').innerHTML='<thead><tr><th>Parameter</th><th>Nilai</th></tr></thead
  ['Luas DAS (Thiessen)',K.CATCH+' km²'],...ST.filter(s=>s.ca).map(s=>['Poligon '+s.n,s.w+' km²']),['Fishway',K.FISH+' m³/s'],['Koef. konversi',K.KNEW+' → '+K.KOLD]
 ].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')+'</tbody>';
 $('btnTest').onclick=async()=>{$('testOut').textContent='Menguji…';
-  try{const d=await getBmkg(true);setDot(d.ok);bmkg=d;$('testOut').innerHTML=(d.ok?'<span class="ok">✓ Terhubung.</span> ':'')+d.stations.map(s=>s.name+': '+(s.error?'gagal ('+s.error+')':s.days.length+' hari')).join(' · ')}
+  try{const d=await getBmkg(true);setDot(d.ok);d.src='BMKG';bmkg=d;$('testOut').innerHTML=(d.ok?'<span class="ok">✓ Terhubung.</span> ':'')+d.stations.map(s=>s.name+': '+(s.error?'gagal ('+s.error+')':s.days.length+' hari')).join(' · ')}
   catch(e){setDot(0);$('testOut').textContent=e.message}};
 
 /* ---------- tab ---------- */
