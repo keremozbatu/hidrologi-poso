@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kondisi Air Danau Poso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Spectral:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: laporan singkat untuk manajemen & PLN — bahasa sehari-hari, satu pesan utama, angka sedikit
+   IDEA: lembar ringkasan rapat RAE: status, pilihan keputusan, angka bulan ini
+   PICTURE: grafik muka air dengan zona aman hijau, hanya garis aktual dan proyeksi
+   COLOUR and TYPE: putih, tinta hitam, biru untuk proyeksi, hijau = zona aman, merah = di bawah batas; Spectral + Inter
+   LAYOUT: satu kolom: status → ringkasan → keputusan bulan ini → pilihan → grafik → tabel; detail teknis disembunyikan */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0d0e18);--ink:light-dark(#14110f,#eceaf2);--mute:light-dark(#5f6470,#a3a7b6);--line:light-dark(#e4e6ea,#262838);
+--acc:light-dark(#1d2bd8,#8a95ff);--fan:light-dark(#dde1fb,#23285a);--alt:light-dark(#8a8f9c,#8f94a6);
+--red:light-dark(#b42318,#ff7a6e);--redbg:light-dark(#fdecea,#3a1513);--amb:light-dark(#9a6700,#f2c94c);--ambbg:light-dark(#fff6dc,#352a0c);
+--grn:light-dark(#1a7f37,#4ad66d);--grnbg:light-dark(#e9f6ec,#10301a);--zone:light-dark(#e6f4ea,#11301c);--card:light-dark(#f5f6f8,#151726)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1000px;margin:0 auto;padding:0 max(4vw,16px)}
+header{padding:clamp(24px,4vw,48px) 0 0}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.kicker{font-size:14px;color:var(--mute);margin:0}
+.mode{display:inline-flex;border:1px solid var(--line);border-radius:22px;padding:3px}
+.mode button{font:inherit;font-size:14px;min-height:38px;padding:0 14px;border:0;border-radius:18px;background:transparent;color:var(--ink);cursor:pointer}
+.mode button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.badge{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:6px 12px;border-radius:6px;margin:18px 0 0}
+.badge.red{background:var(--redbg);color:var(--red)}.badge.amb{background:var(--ambbg);color:var(--amb)}.badge.grn{background:var(--grnbg);color:var(--grn)}
+.badge i{width:10px;height:10px;border-radius:50%;background:currentColor}
+h1{font:600 clamp(28px,4.4vw,44px)/1.12 Spectral,Georgia,serif;margin:10px 0 14px;text-wrap:balance;max-width:26ch}
+.sum{font-size:18px;line-height:1.6;max-width:66ch;margin:0}
+.sum p{margin:0 0 10px}
+h2{font:600 25px/1.2 Spectral,Georgia,serif;margin:0 0 6px}
+section{padding:clamp(26px,4vw,44px) 0;border-top:1px solid var(--line)}
+.sub{color:var(--mute);margin:0 0 14px;max-width:68ch;font-size:15px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid var(--ink);border-bottom:1px solid var(--line);margin:24px 0 0}
+.kpi{padding:14px 16px 16px 0}.kpi+.kpi{padding-left:16px;border-left:1px solid var(--line)}
+.kpi span{display:block;font-size:14px;color:var(--mute)}
+.kpi b{display:block;font:500 clamp(26px,3.8vw,38px)/1.15 Spectral,Georgia,serif;white-space:nowrap;margin:4px 0}
+.kpi small{font-size:14px}
+@media(max-width:640px){.kpis{grid-template-columns:minmax(0,1fr)}.kpi+.kpi{padding-left:0;border-left:0;border-top:1px solid var(--line)}}
+.decide{background:var(--card);border-left:4px solid var(--ink);padding:18px 20px;margin-top:6px}
+.decide b.big{display:block;font:500 clamp(30px,4.6vw,46px)/1.1 Spectral,Georgia,serif;margin:2px 0 6px}
+.decide .row{display:flex;flex-wrap:wrap;gap:8px 32px;align-items:flex-end}
+.decide .row div span{display:block;font-size:14px;color:var(--mute)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media(max-width:700px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{border:1px solid var(--line);padding:18px 20px;border-radius:4px;cursor:pointer;background:var(--bg);text-align:left;font:inherit;color:inherit}
+.opt[aria-pressed=true]{border:2px solid var(--acc);padding:17px 19px}
+.opt h3{font:600 18px/1.3 Inter,sans-serif;margin:0 0 2px}
+.opt .tag{font-size:13px;color:var(--mute);margin:0 0 12px}
+.opt dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;margin:0;font-size:15px}
+.opt dt{color:var(--mute)}.opt dd{margin:0;font-weight:600;text-align:right;white-space:nowrap}
+.opt dd.bad{color:var(--red)}.opt dd.ok{color:var(--grn)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--mute);margin:10px 0 2px}
+.legend i{display:inline-block;width:22px;border-top:2.5px solid;vertical-align:middle;margin-right:6px}
+.legend i.z{height:12px;border:0;background:var(--zone)}.legend i.f{height:12px;border:0;background:var(--fan)}
+.fig{position:relative;min-height:380px}.fig.sm{min-height:250px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+svg text{font:12px Inter,sans-serif;fill:var(--mute)}svg text.lb{font-weight:600;font-size:13px}
+.tip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.45;box-shadow:0 6px 18px #0002;display:none;z-index:2;white-space:nowrap}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:15px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:500;color:var(--mute);font-size:13px;border-bottom:1px solid var(--ink);vertical-align:bottom;white-space:normal}
+tr.tot td{font-weight:600;border-top:2px solid var(--ink);border-bottom:0}
+td.hl,th.hl{background:light-dark(#eef0fd,#1a1d40)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.dot.r{background:var(--red)}.dot.g{background:var(--grn)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,44px)}
+@media(max-width:800px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.bars{display:grid;gap:12px;margin-top:8px}
+.bar{display:grid;grid-template-columns:11em minmax(0,1fr) 5.6em;align-items:center;gap:10px;font-size:15px}
+.bar .t{height:20px;background:var(--card);position:relative}.bar .t div{height:100%;background:var(--acc)}.bar .t div.pl{background:var(--alt)}
+.bar .t .tg{position:absolute;top:-5px;bottom:-5px;border-left:2px dashed var(--ink)}
+.bar b{font-weight:500;text-align:right;white-space:nowrap}
+ol.steps{padding-left:22px;margin:8px 0 0}ol.steps li{margin:0 0 10px;max-width:72ch}
+dl.defs{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 18px;margin:12px 0 0}dl.defs dt{font-weight:600}dl.defs dd{margin:0}
+@media(max-width:600px){dl.defs{grid-template-columns:minmax(0,1fr)}dl.defs dd{margin-bottom:8px}}
+.note{background:var(--card);padding:14px 18px;font-size:15px}.note ul{margin:6px 0 0;padding-left:20px}
+.qc{margin-top:16px;border-left:3px solid var(--red);padding:8px 14px;background:var(--card);font-size:14px}
+.scroll{overflow-x:auto}.small{font-size:13px;color:var(--mute)}
+.tech{display:none}body.tek .tech{display:block}body.tek .tech-c{display:table-cell}.tech-c{display:none}
+footer{color:var(--mute);font-size:13px;border-top:1px solid var(--line);padding:24px 0 40px}
+@media(max-width:600px){table{font-size:13px}th,td{padding:7px 6px}.bar{grid-template-columns:8.5em minmax(0,1fr) 4.8em}}
+@media print{.mode,.tip{display:none}section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<a href="./" style="display:inline-block;margin-bottom:6px;font-size:14px;color:var(--mute);text-decoration:none">← Hidrologi PLTA Poso</a>
+<div class="top"><p class="kicker" id="kick">PLTA Poso · Kondisi air Danau Poso · memuat data…</p>
+<div class="mode" role="group" aria-label="Tingkat detail"><button id="mR" aria-pressed="true">Ringkas</button><button id="mT" aria-pressed="false">Teknis</button></div></div>
+<div class="badge" id="badge"><i></i><span>memuat…</span></div>
+<h1 id="ttl">Kondisi air Danau Poso</h1>
+<div class="sum" id="sum"></div>
+<div class="kpis" id="kpis"></div>
+<p class="small" id="status" style="margin-top:10px"></p>
+</header>
+
+<section>
+<h2 id="decTtl">Yang perlu diputuskan bulan ini</h2>
+<div class="decide" id="decide"></div>
+</section>
+
+<section>
+<h2>Dua pilihan produksi listrik</h2>
+<p class="sub">Klik salah satu untuk melihatnya di grafik. Angka utama memakai hujan normal; angka dalam kurung bila tahun kering (10% skenario terkering).</p>
+<div class="opts" id="opts"></div>
+</section>
+
+<section>
+<h2 id="mainTtl">Muka air Danau Poso: aktual dan perkiraan</h2>
+<div class="legend" id="legend"></div>
+<div class="fig" id="fMain"><svg id="sMain" role="img" aria-label="Grafik muka air Danau Poso"></svg><div class="tip" id="tMain"></div></div>
+<p class="small" id="chartNote"></p>
+</section>
+
+<section>
+<h2 id="monTtl">Rekomendasi energi per bulan</h2>
+<p class="sub">Energi yang bisa diproduksi tanpa menurunkan muka air lebih jauh, dibanding rencana RAE.</p>
+<div class="scroll"><table id="tMon"></table></div>
+<p class="small" id="monNote"></p>
+<div id="qcBox" class="tech"></div>
+</section>
+
+<div class="tech">
+<section>
+<div class="grid2">
+<div>
+<h2 id="dayTtl">Air masuk dan keluar, 50 hari terakhir</h2>
+<p class="sub">Inflow dihitung balik dari perubahan TMA (1 cm ≈ 41 m³/s sehari), jadi lihat polanya.</p>
+<div class="legend"><span><i style="border-color:var(--acc)"></i>Inflow (air masuk)</span><span><i style="border-color:var(--ink)"></i>Outflow (air dipakai pembangkit)</span></div>
+<div class="fig sm" id="fDay"><svg id="sDay" role="img" aria-label="Grafik inflow dan outflow"></svg><div class="tip" id="tDay"></div></div>
+</div>
+<div>
+<h2 id="yTtl">Energi tahun depan per skenario hujan</h2>
+<p class="sub">Pilihan produksi rekomendasi; garis putus = target 1.669 GWh/tahun.</p>
+<div class="bars" id="yBars"></div>
+</div>
+</div>
+</section>
+<section>
+<h2>Cara menghitung</h2>
+<ol class="steps">
+<li><b>Hujan DAS:</b> rata-rata berbobot 6 stasiun (sheet Hujan Harian Rn), dikali 1,05 agar setara data kalibrasi 2016–2025.</li>
+<li><b>Hujan → air masuk danau:</b> model hidrologi harian GR4J (4 parameter + faktor hujan 1,15), dikalibrasi ke inflow 2020–2023, diuji 2024–Okt 2026.</li>
+<li><b>Hujan ke depan:</b> dari kondisi model hari ini, model dilanjutkan dengan hujan tahun 2016–2024 mulai tanggal yang sama → 9 kemungkinan inflow (P10 kemarau, P50 normal, P90 basah) + analog El Niño 2023/24.</li>
+<li><b>Neraca air danau:</b> TMA besok = TMA hari ini + (inflow − outflow) × 86.400 ÷ luas danau (kurva tampungan gabungan danau + dam).</li>
+<li><b>Energi:</b> GWh = outflow × hari ÷ 27,04 (faktor RAE, 1 m³/s ≈ 1,54 MW). Jam puncak = (Q − 46,8) × 24 ÷ 252,8.</li>
+</ol>
+<dl class="defs">
+<dt>Produksi sesuai rencana RAE</dt><dd>Outflow = angka rencana RAE per bulan apa adanya.</dd>
+<dt>Produksi rekomendasi</dt><dd>Outflow dihitung ulang tiap bulan: inflow perkiraan + (tampungan sekarang − tampungan target) ÷ waktu, dibatasi 46,8–299,6 m³/s. Target: TMA ditahan s.d. Februari, naik ke MWL akhir Mei, lalu dijaga ≥ MWL. Inflow perkiraan = yang lebih kecil antara analog El Niño dan normal.</dd>
+</dl>
+</section>
+<section>
+<div class="grid2">
+<div class="note"><b>Keandalan model</b><ul><li>Inflow (validasi 2024–Okt 2026): NSE harian 0,59 · mingguan 0,77 · bulanan 0,81</li><li>TMA: RMSE 10 hari 0,10 m · 30 hari 0,21 m · 90 hari 0,51 m</li><li>Kemarau Okt 2026: inflow aktual 9,6 m³/s, model 10,5 m³/s</li></ul></div>
+<div class="note"><b>Batasan</b><ul><li>Inflow sebelum 2020 tidak dipakai (tidak homogen).</li><li>Kemarau hanya 1 analog (El Niño 2023/24, lebih lemah dari 2026/27).</li><li>Prakiraan hujan 10 hari belum tersambung; PET masih asumsi suhu 25 °C.</li></ul></div>
+</div>
+</section>
+</div>
+</div>
+<footer><div class="wrap">Sumber: Sheet "00. Input Data Hidrologi" (muka air, outflow, hujan harian), data hidrologi historis PLTA Poso, kurva tampungan Danau Poso, rencana RAE 2026–2030, prakiraan ENSO IRI (Okt 2026).</div></footer>
+<script>// Mesin proyeksi: GR4J + neraca air Danau Poso + aturan ECE adaptif
+// Dipakai di browser (window.PosoEngine) dan di node (module.exports) untuk uji.
+(function (root) {
+  const DAY = 864e5, MWL = 510.1, FWL = 512.2, QMIN = 46.8, QMAX = 299.6, K_ECE = 27.04;
+  const iso = t => new Date(t).toISOString().slice(0, 10);
+  const T = s => Date.parse(s + 'T00:00:00Z');
+
+  function oudin(t, lat = -1.85, Tc = 25) {
+    const d = new Date(t), j = Math.round((t - Date.UTC(d.getUTCFullYear(), 0, 0)) / DAY);
+    const phi = lat * Math.PI / 180, dr = 1 + 0.033 * Math.cos(2 * Math.PI * j / 365), de = 0.409 * Math.sin(2 * Math.PI * j / 365 - 1.39);
+    const ws = Math.acos(-Math.tan(phi) * Math.tan(de));
+    const Ra = 24 * 60 / Math.PI * 0.082 * dr * (ws * Math.sin(phi) * Math.sin(de) + Math.cos(phi) * Math.cos(de) * Math.sin(ws));
+    return Ra / 2.45 * (Tc + 5) / 100;
+  }
+  function uh(x4) {
+    const n1 = Math.ceil(x4), n2 = Math.ceil(2 * x4);
+    const s1 = t => t <= 0 ? 0 : t >= x4 ? 1 : (t / x4) ** 2.5;
+    const s2 = t => t <= 0 ? 0 : t < x4 ? 0.5 * (t / x4) ** 2.5 : t < 2 * x4 ? 1 - 0.5 * (2 - t / x4) ** 2.5 : 1;
+    const u1 = [], u2 = [];
+    for (let i = 1; i <= n1; i++) u1.push(s1(i) - s1(i - 1));
+    for (let i = 1; i <= n2; i++) u2.push(s2(i) - s2(i - 1));
+    return [u1, u2];
+  }
+  // P, E dalam mm/hari; state = {S,R,q1,q2}; kembali Q mm/hari + state akhir
+  function gr4j(par, P, E, st) {
+    const [x1, x2, x3, x4] = par, [u1, u2] = uh(x4);
+    let S, R, q1, q2;
+    if (st) { S = st.S; R = st.R; q1 = st.q1.slice(); q2 = st.q2.slice(); }
+    else { S = 0.5 * x1; R = 0.5 * x3; q1 = u1.map(() => 0); q2 = u2.map(() => 0); }
+    const Q = new Array(P.length);
+    for (let t = 0; t < P.length; t++) {
+      const p = P[t], e = E[t]; let pn, ps, es;
+      if (p >= e) { pn = p - e; const ws = Math.min(pn / x1, 13), th = Math.tanh(ws); ps = x1 * (1 - (S / x1) ** 2) * th / (1 + S / x1 * th); es = 0; }
+      else { const en = e - p, ws = Math.min(en / x1, 13), th = Math.tanh(ws); pn = 0; es = S * (2 - S / x1) * th / (1 + (1 - S / x1) * th); ps = 0; }
+      S = S - es + ps;
+      const perc = S * (1 - (1 + (4 / 9 * S / x1) ** 4) ** -0.25); S -= perc;
+      const pr = perc + pn - ps;
+      q1.shift(); q1.push(0); for (let k = 0; k < q1.length; k++) q1[k] += 0.9 * pr * u1[k];
+      q2.shift(); q2.push(0); for (let k = 0; k < q2.length; k++) q2[k] += 0.1 * pr * u2[k];
+      const F = x2 * (R / x3) ** 3.5;
+      R = Math.max(0, R + q1[0] + F); const qr = R * (1 - (1 + (R / x3) ** 4) ** -0.25); R -= qr;
+      Q[t] = qr + Math.max(0, q2[0] + F);
+    }
+    return { Q, st: { S, R, q1, q2 } };
+  }
+  function makeCurve(H, S) {
+    const h2s = h => { let k = 1; while (k < H.length - 1 && h > H[k]) k++; return (S[k - 1] + (h - H[k - 1]) * (S[k] - S[k - 1]) / (H[k] - H[k - 1])) * 1e6; };
+    const s2h = s => { s /= 1e6; let k = 1; while (k < S.length - 1 && s > S[k]) k++; return H[k - 1] + (s - S[k - 1]) * (H[k] - H[k - 1]) / (S[k] - S[k - 1]); };
+    return { h2s, s2h };
+  }
+  const q = (a, p) => { const b = a.filter(v => v != null).sort((x, y) => x - y); if (!b.length) return null; const i = (b.length - 1) * p, lo = Math.floor(i); return b[lo] + (b[Math.min(lo + 1, b.length - 1)] - b[lo]) * (i - lo); };
+  const monthKey = t => iso(t).slice(0, 7);
+
+  /**
+   * run({st: data statis, rainExtra: {iso: mm CH DAS sheet}, h0, tObs (iso tanggal TMA terakhir), qNow (outflow 7 hari), analog})
+   */
+  function run(o) {
+    const st = o.st, cv = makeCurve(st.curveH, st.curveS), cms = mm => mm * st.area * 1e3 / 86400;
+    // 1. seri hujan lengkap: historis statis + hujan sheet (x1,05 = setara skala PE di model)
+    const t0 = T(st.pStart), P = st.P.slice();
+    let tLast = t0 + (P.length - 1) * DAY;
+    const extra = o.rainExtra || {};
+    const keys = Object.keys(extra).filter(k => T(k) > tLast).sort();
+    if (keys.length) {
+      const tEnd = T(keys[keys.length - 1]);
+      for (let t = tLast + DAY; t <= tEnd; t += DAY) {
+        const v = extra[iso(t)];
+        P.push(v == null ? st.climP[new Date(t).getUTCMonth()] : v * 1.05);
+      }
+      tLast = tEnd;
+    }
+    const E = P.map((_, i) => oudin(t0 + i * DAY));
+    const base = gr4j(st.par, P.map(v => v * st.kp), E);
+    const Qhist = base.Q.map(cms);
+    // 2. horizon: hari setelah TMA terakhir s.d. 31 Des tahun berikutnya
+    const tStart = T(o.tObs) + DAY, tStartY = new Date(tStart).getUTCFullYear();
+    const tH = Date.UTC(tStartY + 1, 11, 31), n = Math.round((tH - tStart) / DAY) + 1;
+    const days = Array.from({ length: n }, (_, i) => tStart + i * DAY);
+    // model inflow untuk celah antara hujan terakhir dan awal proyeksi (biasanya 0 hari)
+    const lag = Math.round((T(o.tObs) - tLast) / DAY);   // >0: hujan terakhir lebih tua dari TMA terakhir
+    const gap = Math.max(0, -lag);
+    // 3. trace hujan historis, mulai hari-bulan yang sama dengan hari setelah hujan terakhir
+    const tr0 = tLast + DAY, md = iso(tr0).slice(5), traces = {};
+    const nTr = lag >= 0 ? n + lag : n - gap;
+    for (let Y = new Date(t0).getUTCFullYear(); ; Y++) {
+      const i0 = Math.round((T(Y + '-' + md) - t0) / DAY);
+      if (i0 < 0) continue;
+      if (i0 + nTr > st.P.length) break;
+      const Pt = st.P.slice(i0, i0 + nTr).map(v => v * st.kp);
+      const Et = Array.from({ length: nTr }, (_, k) => oudin(tr0 + k * DAY));
+      const r = gr4j(st.par, Pt, Et, base.st).Q.map(cms);
+      traces[Y] = lag >= 0 ? r.slice(lag) : Qhist.slice(Qhist.length - gap).concat(r);   // inflow per hari mulai tStart
+    }
+    const Ys = Object.keys(traces).map(Number);
+    const analog = traces[o.analog] ? o.analog : Ys[Ys.length - 1];
+    // 4. rencana RAE per hari
+    const plan = days.map(t => { const r = st.rae[monthKey(t)]; if (r) return r[0]; const mm = monthKey(t).slice(5); const v = Object.entries(st.rae).filter(([k]) => k.slice(5) === mm).map(([, x]) => x[0]); return v.reduce((a, b) => a + b, 0) / v.length; });
+    const h0 = o.h0, s0 = cv.h2s(h0);
+    const simFixed = (I, O) => { let s = s0; return I.map((v, k) => { s += (v - O[k]) * 86400; return cv.s2h(s); }); };
+    // 5. aturan adaptif
+    const months = []; for (let t = tStart; t <= tH; t = Date.UTC(new Date(t).getUTCFullYear(), new Date(t).getUTCMonth() + 1, 1)) months.push(monthKey(t));
+    const first = months[0];  // sisa bulan berjalan: outflow tetap = realisasi 7 hari
+    const midx = days.map(t => months.indexOf(monthKey(t)));
+    const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    const mInflow = Y => months.map((m, j) => mean(traces[Y].filter((_, k) => midx[k] === j)));
+    const mAll = Object.fromEntries(Ys.map(Y => [Y, mInflow(Y)]));
+    const design = months.map((m, j) => Math.min(mAll[analog][j], q(Ys.map(Y => mAll[Y][j]), 0.5)));
+    // kurva pandu
+    const sm = new Date(tStart).getUTCMonth() + 1, tgtY = sm <= 3 ? tStartY : tStartY + 1;
+    const holdEnd = tgtY + '-02', tgtEnd = tgtY + '-05';
+    const guide = months.map(m => {
+      if (h0 >= MWL) return MWL;
+      if (m <= holdEnd) return h0;
+      if (m <= tgtEnd) { const a = Math.max(0, mIdx(m) - mIdx(holdEnd)), b = mIdx(tgtEnd) - mIdx(holdEnd); return h0 + (MWL - h0) * a / b; }
+      return MWL;
+    });
+    function mIdx(m) { const [y, mm] = m.split('-').map(Number); return y * 12 + mm; }
+    const adapt = Y => {
+      const I = traces[Y]; let s = s0; const H = [], ece = months.map(() => 0), Qm = months.map(() => 0);
+      let j = -1, O = o.qNow;
+      for (let k = 0; k < n; k++) {
+        if (midx[k] !== j) {
+          j = midx[k];
+          if (j > 0) { const nd = midx.filter(x => x === j).length; O = Math.min(QMAX, Math.max(QMIN, design[j] + (s - cv.h2s(guide[j])) / (nd * 86400))); }
+          Qm[j] = O;
+        }
+        let ob = O; if (cv.s2h(s) > FWL) ob = Math.max(ob, Math.min(QMAX, I[k] + (s - cv.h2s(FWL)) / 86400));
+        s += (I[k] - ob) * 86400; ece[j] += ob / K_ECE; H.push(cv.s2h(s));
+      }
+      return { H, ece, Qm };
+    };
+    const A = Object.fromEntries(Ys.map(Y => [Y, adapt(Y)]));
+    const F = Object.fromEntries(Ys.map(Y => [Y, simFixed(traces[Y], plan)]));
+    const band = src => ({ p10: days.map((_, k) => q(Ys.map(Y => src(Y)[k]), 0.1)), p50: days.map((_, k) => q(Ys.map(Y => src(Y)[k]), 0.5)), p90: days.map((_, k) => q(Ys.map(Y => src(Y)[k]), 0.9)), en: src(analog) });
+    const nextY = String(tStartY + 1);
+    const monthTab = months.map((m, j) => {
+      const nd = midx.filter(x => x === j).length, endK = midx.lastIndexOf(j);
+      const qa = A[analog].ece[j] * K_ECE / nd, q50 = q(Ys.map(Y => A[Y].ece[j]), 0.5) * K_ECE / nd;
+      const r = st.rae[m];
+      return { b: m, hari: nd, plan: r ? r[1] * nd / new Date(Date.UTC(+m.slice(0, 4), +m.slice(5), 0)).getUTCDate() : null,
+        en: A[analog].ece[j], p10: q(Ys.map(Y => A[Y].ece[j]), 0.1), p50: q(Ys.map(Y => A[Y].ece[j]), 0.5), p90: q(Ys.map(Y => A[Y].ece[j]), 0.9),
+        tma: q(Ys.map(Y => A[Y].H[endK]), 0.5), pLow: Ys.filter(Y => A[Y].H[endK] < MWL).length / Ys.length,
+        jam: Math.max(0, (qa - QMIN) * 24 / (QMAX - QMIN)), jam50: Math.max(0, (q50 - QMIN) * 24 / (QMAX - QMIN)), guide: guide[j] };
+    });
+    const yearSum = Y => months.reduce((a, m, j) => a + (m.startsWith(nextY) ? A[Y].ece[j] : 0), 0);
+    const ys = Ys.map(yearSum);
+    const planY = Object.entries(st.rae).filter(([k]) => k.startsWith(nextY)).reduce((a, [, v]) => a + v[1], 0) || null;
+    return {
+      tStart: iso(tStart), tRain: iso(tLast), nTrace: Ys.length, analog, years: Ys, nextYear: +nextY,
+      adapt: band(Y => A[Y].H), plan: band(Y => F[Y]), monthTab,
+      annual: { plan: planY, p10: q(ys, 0.1), p50: q(ys, 0.5), p90: q(ys, 0.9), en: yearSum(analog) },
+      inflowNow: Qhist.slice(-7).reduce((a, b) => a + b, 0) / 7,
+      traces: o.returnTraces ? traces : undefined, days: o.returnTraces ? days.map(iso) : undefined,
+      rain90: P.slice(-90).reduce((a, b) => a + b, 0),
+      normal90: P.slice(-90).reduce((a, _, k) => a + st.climP[new Date(tLast - (89 - k) * DAY).getUTCMonth()], 0)
+    };
+  }
+
+  /**
+   * forecastDaily: prakiraan harian dari hujan prakiraan (BMKG / Open-Meteo).
+   * o = {st, rainExtra: {iso: CH DAS sheet}, rainF: {iso tanggal AKHIR periode 07-07: mm setara CH sheet},
+   *      startDate: iso (elevasi diketahui jam 07:00), h0, O: outflow m3/s, nMax}
+   */
+  function forecastDaily(o) {
+    const st = o.st, cv = makeCurve(st.curveH, st.curveS), cms = mm => mm * st.area * 1e3 / 86400;
+    const t0 = T(st.pStart), P = st.P.slice(), extra = o.rainExtra || {}, fc = o.rainF || {};
+    const clim = t => st.climP[new Date(t).getUTCMonth()];
+    let tLast = t0 + (P.length - 1) * DAY;
+    const keys = Object.keys(extra).filter(k => T(k) > tLast).sort();
+    if (keys.length) {
+      const tEnd = T(keys[keys.length - 1]);
+      for (let t = tLast + DAY; t <= tEnd; t += DAY) { const v = extra[iso(t)]; P.push(v == null ? clim(t) : v * 1.05); }
+      tLast = tEnd;
+    }
+    const tObsRain = tLast, tS = T(o.startDate), nMax = o.nMax || 10, src = {};
+    for (let t = tLast + DAY; t <= tS + nMax * DAY; t += DAY) {
+      const k = iso(t);
+      if (fc[k] != null) { P.push(fc[k] * 1.05); src[k] = 'fc'; }
+      else if (t <= tS) { P.push(clim(t)); src[k] = 'clim'; }
+      else break;
+      tLast = t;
+    }
+    const E = P.map((_, i) => oudin(t0 + i * DAY));
+    const Q = gr4j(st.par, P.map(v => v * st.kp), E).Q.map(cms);
+    const idx = t => Math.round((t - t0) / DAY);
+    let s = cv.h2s(o.h0); const days = [];
+    const b = o.bias || 0, tau = o.tau || 5; let k = 0;
+    for (let t = tS + DAY; t <= tLast; t += DAY, k++) {
+      const i = idx(t), I = Math.max(0, Q[i] + b * Math.exp(-k / tau)); s += (I - o.O) * 86400;
+      days.push({ t: iso(t), p: P[i] / 1.05, src: src[iso(t)] || 'obs', I, Im: Q[i], H: cv.s2h(s) });
+    }
+    const io = idx(tObsRain);
+    return { start: iso(tS), h0: o.h0, O: o.O, tRainObs: iso(tObsRain), days,
+      climDays: Object.values(src).filter(v => v === 'clim').length,
+      iModel7: Q.slice(io - 6, io + 1).reduce((a, b) => a + b, 0) / 7 };
+  }
+  const api = { run, forecastDaily, gr4j, oudin, makeCurve, MWL, FWL, QMIN, QMAX, K_ECE };
+  if (typeof module !== 'undefined') module.exports = api; else root.PosoEngine = api;
+})(this);
+</script>
+<script>{
+const API = 'https://script.google.com/macros/s/AKfycbxkmbf3qYft_kz2tXEh5AYlxhIO2_P6KS4SVJPcUwMl0PN6O7eaqsgJDo26MdkdaZiC/exec?days=400';
+const ST = {"pStart":"2016-01-01","P":[11.9,6.1,21.0,0.8,0.8,0.0,0.0,2.2,0.7,0.0,2.4,1.7,2.2,0.2,14.5,19.3,14.2,11.5,5.5,6.5,7.6,22.6,0.0,10.1,3.1,0.6,0.0,0.0,0.0,0.0,0.0,8.8,15.0,39.0,10.1,2.4,1.1,3.5,4.7,0.0,1.6,1.2,0.3,0.0,14.7,3.8,6.8,27.5,0.8,0.3,0.0,1.0,31.3,1.2,27.3,10.7,8.9,0.1,14.3,25.1,18.5,21.5,36.6,3.9,4.1,6.1,31.2,18.3,9.9,19.1,2.2,10.9,5.0,2.3,8.4,38.6,28.8,1.3,0.3,39.7,31.6,11.4,42.3,25.0,9.2,15.8,3.7,14.9,43.7,41.2,3.3,48.3,29.4,31.0,36.9,0.4,0.7,7.5,15.8,41.9,22.0,4.9,36.8,13.2,13.3,9.5,42.2,13.0,34.2,26.2,71.4,55.9,1.4,25.3,26.5,12.4,17.1,16.7,10.8,15.8,21.0,21.5,0.9,0.6,0.7,29.4,5.0,13.3,2.1,12.1,9.5,10.4,0.7,4.5,2.8,15.4,39.3,19.1,23.3,28.8,13.9,7.8,0.1,32.6,0.9,0.6,3.2,0.3,0.2,7.9,0.7,2.5,6.6,28.8,6.9,36.3,6.4,18.7,35.3,4.5,0.0,9.2,6.2,1.8,7.4,9.4,0.7,2.1,3.2,17.8,25.4,3.3,17.5,13.5,5.8,28.4,26.3,17.3,42.2,12.2,9.6,0.0,0.8,1.3,2.8,6.1,1.3,0.3,0.4,0.0,0.5,1.9,5.3,1.4,16.3,12.2,13.1,11.4,14.9,17.2,25.1,5.4,4.1,4.0,0.3,0.2,4.5,0.0,2.2,15.1,0.8,7.0,0.3,6.4,8.4,36.2,20.4,7.0,18.2,1.5,0.0,0.0,0.2,0.2,2.8,4.3,4.0,0.4,2.1,1.8,11.4,6.1,11.9,28.6,8.3,14.1,7.5,13.4,0.1,0.0,0.1,1.2,0.0,0.9,0.7,0.3,8.5,8.5,2.0,3.4,5.7,0.2,0.0,0.0,0.0,27.5,10.5,0.4,11.2,12.4,1.0,28.0,20.7,18.7,30.4,9.7,18.7,14.8,2.9,3.1,0.0,1.2,13.1,1.2,19.5,36.2,10.3,3.0,0.0,5.5,10.7,4.0,25.0,5.3,7.7,2.6,14.8,8.3,0.3,23.8,13.5,0.2,6.7,0.1,10.8,12.4,4.3,23.3,58.8,16.0,41.8,39.1,21.3,0.0,13.3,16.6,0.9,0.0,0.0,0.0,0.0,3.8,18.4,7.9,36.5,19.9,18.3,13.2,7.2,1.5,3.5,3.6,29.9,13.7,4.3,4.8,17.6,6.4,12.8,7.5,12.2,12.9,12.1,4.4,6.0,12.7,15.6,21.4,3.3,0.1,0.0,0.7,8.5,4.5,16.6,3.4,35.4,0.1,1.1,0.7,0.0,0.0,0.0,1.8,0.1,0.0,0.0,0.0,0.7,2.9,5.0,12.6,7.5,22.2,0.3,0.0,0.0,8.0,0.0,0.0,2.6,0.7,0.0,0.0,0.0,0.0,4.6,1.8,0.0,3.0,0.8,10.6,3.0,22.3,19.1,1.3,8.5,0.7,0.0,0.6,0.0,2.4,0.2,28.7,13.9,0.2,0.1,0.2,0.0,0.0,0.0,0.0,0.3,0.0,0.0,0.0,0.0,7.3,11.1,23.5,16.3,1.4,11.7,24.4,24.1,6.5,9.8,0.0,9.0,10.8,8.6,1.9,4.1,10.8,9.9,66.1,17.9,1.8,3.6,24.1,1.8,4.1,7.6,1.4,14.2,20.9,8.9,7.7,8.2,0.4,9.2,6.2,1.0,1.0,15.6,4.4,15.6,3.8,0.4,13.4,3.0,0.3,10.5,9.7,12.5,62.7,4.2,0.3,0.0,4.1,25.7,9.7,16.4,47.7,32.6,18.4,9.3,0.0,1.5,5.0,9.8,21.4,30.7,19.0,6.8,15.2,20.5,9.5,10.6,35.5,0.6,23.0,38.9,18.1,50.4,7.3,2.8,34.5,63.7,44.9,10.2,70.6,17.4,9.4,10.4,1.2,15.8,11.4,0.5,0.2,11.9,2.0,18.4,32.6,11.8,24.7,21.8,4.3,10.6,0.2,3.1,4.4,10.1,4.0,28.4,20.3,12.2,31.2,13.8,1.4,0.2,4.0,17.9,11.3,5.4,3.7,12.2,5.6,5.7,7.3,2.7,0.0,4.4,4.4,5.0,7.8,6.2,7.3,2.4,0.5,0.0,26.3,11.1,13.4,1.0,7.9,6.5,29.2,1.7,4.4,1.6,3.4,14.2,20.3,4.0,1.3,12.5,13.5,5.7,6.2,11.8,0.2,0.0,16.9,3.4,1.1,2.5,4.2,3.8,1.9,3.5,0.7,3.9,12.9,5.2,3.8,0.0,0.0,13.0,1.9,9.7,5.6,2.2,2.2,9.6,3.4,3.0,0.0,3.0,1.0,0.0,0.1,7.9,14.8,16.5,25.3,13.1,0.3,0.4,6.2,6.0,6.6,2.8,0.0,0.7,1.6,1.4,0.0,0.4,0.0,0.0,4.8,0.7,0.0,0.0,0.1,7.5,0.2,4.7,5.2,0.1,29.5,20.4,2.3,7.4,0.1,0.0,0.0,0.4,0.7,2.8,7.5,6.2,10.3,0.4,0.4,0.5,9.7,5.6,23.1,5.3,2.3,11.5,6.1,3.5,12.6,13.4,2.4,7.3,16.2,16.7,5.7,0.4,0.1,4.8,3.1,3.6,0.7,0.0,0.0,5.1,13.2,13.5,2.3,2.3,17.2,31.6,12.4,7.0,7.7,7.9,1.3,12.7,0.6,27.1,7.9,13.7,12.5,0.0,2.0,4.0,16.1,18.9,8.2,29.9,25.6,9.7,10.2,26.8,27.0,17.8,31.2,22.3,38.9,23.0,24.0,55.3,12.8,2.6,0.3,0.8,1.3,0.2,1.3,12.2,6.4,7.6,42.8,15.1,18.9,66.3,6.5,11.6,7.0,3.7,10.3,7.7,3.6,0.0,0.0,0.0,0.0,0.0,0.0,1.4,2.0,1.1,14.3,10.4,3.5,0.6,17.1,14.0,4.3,3.2,4.3,29.8,1.3,22.9,3.7,6.7,4.6,10.2,25.4,8.0,48.0,0.0,0.0,1.3,0.0,1.5,0.0,0.0,0.7,0.8,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.3,1.7,7.9,0.9,8.3,5.4,3.3,7.9,22.6,18.6,1.6,0.0,1.4,0.8,1.2,1.2,0.1,7.7,0.5,3.0,4.9,5.2,2.1,5.1,7.6,5.8,1.8,17.7,19.8,8.2,4.5,7.4,21.4,22.3,8.3,6.7,4.8,3.4,9.5,26.2,37.1,1.4,15.6,0.6,0.0,1.4,26.1,1.5,2.0,0.7,27.0,41.5,13.0,0.4,9.4,3.5,9.5,1.5,0.0,4.5,13.7,33.2,20.2,2.4,7.0,5.2,20.3,1.2,4.4,0.9,0.0,6.5,7.2,23.7,28.3,33.3,7.6,5.1,10.7,7.1,11.0,6.8,11.3,33.0,17.6,21.8,52.2,44.8,0.4,18.2,13.8,10.8,32.0,0.7,6.0,6.9,21.4,8.3,10.4,4.4,15.4,5.2,3.9,0.6,5.5,16.1,0.2,2.4,0.7,2.2,0.3,0.3,4.3,7.5,0.7,4.7,0.2,1.4,9.3,2.4,4.0,9.0,6.9,3.5,2.3,1.2,3.0,1.2,0.0,0.0,1.3,10.5,31.8,19.3,6.9,3.3,0.2,0.2,2.2,8.5,14.5,1.4,3.6,5.9,5.8,7.6,4.9,4.9,12.2,6.8,14.7,2.8,24.8,3.7,0.4,0.0,0.2,0.3,2.3,0.9,18.7,0.8,0.2,0.5,11.4,13.3,0.2,0.1,1.3,0.0,3.7,30.3,9.2,0.0,0.2,45.5,17.3,1.2,2.9,3.0,1.4,0.0,2.5,27.7,1.0,0.6,4.1,11.3,0.0,16.5,18.1,0.6,27.0,0.5,0.4,20.2,1.6,1.2,5.0,0.2,0.0,0.0,1.3,0.4,38.9,8.8,36.8,20.7,1.0,8.9,19.7,26.8,8.5,0.2,0.4,0.5,13.7,0.7,0.0,0.0,0.0,0.0,0.0,0.0,0.0,23.4,0.0,0.0,6.2,13.8,10.0,0.0,0.0,0.0,2.5,1.1,0.2,0.0,0.7,0.2,0.5,0.0,0.0,2.2,3.9,0.0,1.0,0.3,5.1,0.4,0.2,7.3,3.0,11.2,3.2,0.0,0.0,0.0,0.5,18.6,16.9,32.9,0.0,0.0,0.0,0.0,2.7,2.3,1.3,20.4,3.8,1.1,10.1,18.8,0.5,1.0,6.2,13.1,3.2,0.4,23.7,7.2,1.2,21.2,28.3,42.3,10.1,1.9,10.9,4.1,13.5,27.2,14.0,12.9,9.9,17.1,4.9,4.4,3.8,14.1,16.6,33.8,3.6,32.4,22.1,5.9,41.7,1.3,0.2,2.6,6.8,5.2,23.3,1.7,29.5,7.0,5.2,15.0,63.1,5.3,0.0,23.5,0.2,0.4,10.3,13.6,7.7,0.0,2.3,0.2,0.1,0.0,0.0,0.1,0.0,0.3,0.0,0.0,0.5,3.3,0.2,2.1,0.0,13.6,3.2,2.9,21.5,6.1,8.5,7.6,1.4,1.5,2.5,0.9,0.0,0.1,0.0,0.0,0.0,0.0,0.1,0.8,0.3,0.0,25.7,8.1,1.6,3.4,2.0,6.7,2.7,2.5,40.0,11.6,18.8,14.8,1.2,9.3,0.9,6.7,1.4,26.0,16.5,0.0,5.6,8.9,23.2,15.0,27.8,46.9,4.8,9.4,32.1,40.6,3.2,13.3,5.8,1.8,0.0,2.5,44.2,0.9,36.7,3.8,1.1,8.0,6.1,0.0,0.0,0.0,0.0,0.0,1.2,3.6,0.1,0.2,21.3,14.1,3.7,9.9,33.2,21.4,0.4,5.2,0.8,18.7,0.7,0.8,3.2,1.9,0.0,3.3,49.3,17.8,33.9,27.7,13.7,35.7,5.3,25.7,26.3,16.2,5.2,36.9,24.8,10.0,3.8,29.6,11.9,6.5,30.8,103.2,78.6,1.8,0.0,0.0,0.0,0.0,3.3,4.8,0.2,0.4,3.0,8.8,21.8,5.9,3.6,4.6,0.3,0.0,16.0,11.4,10.9,0.0,6.8,0.5,2.1,1.3,0.0,75.3,5.7,1.7,2.5,7.2,12.2,23.8,13.3,11.2,5.1,2.5,5.5,18.1,4.3,4.8,23.4,4.0,18.6,15.1,14.0,4.4,20.1,37.5,25.3,39.8,39.8,2.4,4.7,0.8,3.1,1.4,0.5,0.8,3.3,3.4,0.0,0.8,0.1,8.8,1.0,0.3,0.6,3.6,0.1,0.3,5.4,2.1,6.1,25.7,0.0,0.1,0.5,0.2,6.9,3.5,1.4,0.4,0.0,0.0,0.0,0.0,0.0,1.1,0.0,0.9,1.3,1.2,0.5,0.0,0.0,0.8,0.5,0.1,0.5,0.0,0.2,2.4,3.6,0.8,1.4,0.1,0.1,0.0,3.3,2.6,14.1,4.0,1.7,2.1,5.8,1.9,0.2,3.2,3.8,0.0,0.0,0.0,0.0,3.6,2.7,0.0,0.0,1.1,0.9,8.2,0.2,2.2,0.0,0.0,0.0,0.0,0.0,0.0,3.1,0.0,3.4,0.0,2.5,1.2,0.0,0.0,0.0,0.0,2.3,9.5,1.8,2.3,2.5,1.3,1.1,8.6,5.3,4.2,0.0,0.0,0.3,0.0,0.0,0.0,0.4,7.4,3.5,8.8,3.5,10.9,0.0,0.3,10.4,0.0,0.0,0.0,13.4,23.3,31.7,0.2,0.0,2.3,1.8,23.4,0.0,5.1,3.0,0.3,0.0,0.0,0.3,0.0,20.6,2.5,4.6,0.8,0.5,0.0,0.0,0.0,0.0,0.0,3.9,3.2,2.1,2.8,16.9,0.0,0.2,12.1,34.5,11.1,3.0,6.7,0.0,0.0,15.1,1.3,0.0,0.4,3.3,6.4,5.0,5.9,2.2,6.2,2.1,5.8,8.6,28.8,0.5,0.9,5.8,14.3,13.7,2.5,7.1,4.1,11.9,2.6,1.6,0.0,3.5,0.0,2.1,1.8,31.5,16.5,6.5,4.0,1.7,0.7,0.2,0.0,10.9,8.5,2.9,0.1,16.0,1.7,27.3,4.7,0.9,0.0,0.0,0.0,0.0,0.1,0.2,0.0,0.1,0.0,3.8,2.4,1.5,10.0,0.7,0.0,1.1,8.9,4.0,0.0,0.0,13.2,34.6,10.2,0.0,1.8,3.6,2.3,6.4,16.1,30.7,9.9,29.1,18.1,2.5,0.1,1.8,0.1,1.3,19.4,12.2,2.7,7.3,5.4,10.5,8.6,38.6,5.6,3.3,2.0,10.8,0.0,8.0,4.7,15.0,10.2,27.1,3.0,13.1,1.3,9.1,2.3,20.1,0.8,2.7,49.9,13.4,22.7,2.2,15.4,40.2,16.5,27.6,28.1,3.8,20.2,23.0,13.2,18.9,12.2,16.3,19.6,23.3,14.9,18.7,7.6,19.9,19.7,3.6,11.5,4.0,1.5,37.0,24.8,8.5,15.1,3.7,10.1,15.4,20.9,47.5,39.9,28.5,45.5,40.5,39.4,11.9,0.3,5.9,0.4,0.3,14.5,20.3,80.1,9.5,6.0,5.3,19.4,6.6,3.3,4.0,29.1,10.3,0.9,6.0,3.5,20.1,3.7,1.5,7.1,3.9,4.1,6.8,5.2,7.6,6.3,16.2,5.8,1.3,1.2,15.3,13.4,19.8,4.6,9.0,1.0,11.6,4.8,5.1,5.6,5.3,25.0,23.7,8.5,4.3,1.8,0.2,0.4,1.4,7.4,6.8,8.6,0.9,1.0,0.6,2.2,6.4,14.4,4.9,3.2,7.8,6.9,0.4,6.3,6.4,3.3,1.8,6.0,11.6,1.1,1.0,2.5,14.1,0.5,1.5,0.1,0.0,0.2,2.3,2.7,1.0,1.1,1.7,0.0,2.6,2.8,11.6,10.6,2.8,29.7,8.3,9.9,6.0,0.0,10.4,1.4,6.5,2.7,0.1,0.0,1.4,1.4,0.8,0.0,1.7,0.0,0.0,1.5,0.8,0.4,0.8,0.5,0.2,1.2,2.4,2.4,9.9,10.5,11.3,3.2,3.4,0.0,9.2,3.2,4.5,0.0,3.6,8.2,6.8,7.3,0.3,0.0,0.0,0.0,0.1,1.3,2.1,13.1,5.7,6.1,0.2,2.9,22.1,3.3,2.2,4.1,14.0,6.9,2.0,3.7,7.3,24.6,35.1,39.7,8.7,8.2,12.2,0.0,1.0,4.1,3.8,17.7,15.5,5.3,5.3,8.7,4.1,0.0,7.1,4.5,6.7,4.6,3.9,7.7,0.2,2.0,3.7,23.3,2.0,1.0,0.0,0.6,9.6,8.2,11.1,0.4,10.9,0.7,0.5,0.0,0.0,7.3,3.7,8.4,0.0,7.0,2.6,10.1,10.5,10.4,8.7,29.8,5.5,26.3,38.8,6.2,17.9,0.5,20.6,0.2,1.7,0.6,0.0,0.0,0.0,1.8,5.1,13.3,9.1,6.3,18.2,9.3,1.3,1.5,0.4,0.0,0.0,2.6,2.7,2.1,1.0,0.0,1.8,1.2,7.7,19.3,18.9,4.6,3.6,17.9,21.5,11.0,2.2,34.5,7.3,51.8,22.4,7.9,0.2,9.6,16.9,23.1,8.5,3.6,14.9,0.7,0.0,0.0,6.8,11.0,57.9,14.3,10.9,0.1,0.0,5.2,4.5,0.2,0.0,2.8,0.8,0.9,18.4,4.6,3.0,10.3,1.2,10.9,0.0,0.0,0.1,6.9,14.4,3.1,0.2,0.0,0.6,10.0,7.5,0.9,1.5,0.4,5.5,0.9,0.0,3.1,0.2,8.6,0.0,2.4,39.1,10.6,32.0,10.0,34.9,12.0,51.4,4.3,0.9,32.8,9.1,9.6,0.0,13.3,0.0,0.0,18.6,1.2,15.6,2.8,10.8,13.8,1.0,32.3,14.2,8.6,41.2,2.4,0.3,0.0,0.0,0.0,3.3,0.0,0.0,18.4,0.5,0.0,0.3,15.7,39.3,11.4,19.7,26.3,37.2,52.7,41.0,2.9,3.7,14.6,9.5,8.9,9.9,29.4,22.4,38.2,2.4,13.7,4.9,8.8,7.5,8.0,7.9,35.0,18.4,21.2,15.4,1.5,4.2,5.2,2.6,0.0,5.4,2.6,6.8,8.5,1.4,4.0,5.5,9.2,35.2,43.9,47.8,7.5,3.4,1.6,6.9,0.0,4.6,45.4,4.2,0.0,0.0,0.0,0.6,0.0,10.2,15.0,0.9,0.2,0.8,9.7,6.8,14.0,19.8,15.2,0.2,7.8,1.0,3.1,9.4,4.8,1.6,5.7,6.3,1.0,17.1,10.8,11.8,12.8,3.6,5.9,2.2,0.0,0.8,27.7,4.0,40.9,10.9,11.3,12.4,0.1,15.4,2.7,2.6,28.8,7.7,0.0,0.1,2.2,15.0,7.5,0.1,2.6,0.0,0.0,0.0,0.2,20.7,1.8,3.6,2.6,36.2,31.7,0.4,4.8,0.4,8.7,20.3,5.9,4.2,3.4,8.2,8.0,15.4,2.2,6.2,1.5,0.7,8.4,22.2,5.4,3.2,6.1,3.0,3.6,10.0,68.2,25.4,0.2,2.1,0.9,6.2,11.5,6.4,12.5,15.3,7.0,3.3,1.4,1.9,4.5,2.7,17.7,7.4,4.3,11.9,4.8,3.8,0.0,0.1,10.7,17.0,49.1,5.7,28.4,32.0,1.5,0.6,0.1,0.9,0.1,8.1,8.2,41.6,2.6,0.0,4.5,0.5,4.6,3.9,31.5,7.2,0.7,22.5,0.5,1.6,9.6,3.2,9.6,6.1,0.3,24.5,13.3,0.1,7.1,3.4,5.0,0.9,2.0,5.1,14.5,3.1,8.3,5.3,15.3,1.2,2.9,25.2,18.7,17.9,15.2,3.8,3.7,6.4,25.6,0.1,45.2,15.3,17.1,12.3,9.6,2.8,1.0,2.1,10.2,12.2,21.1,17.8,27.1,29.4,1.0,4.3,2.6,1.0,19.3,2.7,0.1,0.0,0.0,0.5,0.5,4.2,4.3,6.2,8.3,1.1,0.0,4.9,6.0,25.3,29.6,0.7,0.0,0.0,5.6,1.3,0.0,0.1,0.0,0.5,2.1,2.2,5.3,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,6.5,7.3,7.3,9.8,9.6,14.4,0.6,6.7,5.7,32.7,16.8,4.1,9.6,16.4,39.9,17.3,16.1,8.3,18.0,15.9,15.7,0.5,0.0,0.0,0.0,5.0,1.3,5.9,4.9,4.6,17.6,12.2,5.1,7.0,41.9,5.7,0.3,0.0,14.1,11.2,17.2,8.8,6.0,1.7,14.7,40.2,17.9,13.1,2.4,20.3,16.3,4.7,2.4,3.0,2.9,13.3,1.2,24.7,3.3,15.5,0.0,6.9,6.4,16.6,12.3,13.0,0.3,0.0,3.1,0.5,4.1,6.6,0.3,4.6,17.7,29.1,7.2,12.9,18.7,6.6,25.9,12.1,9.2,26.9,10.1,37.7,15.9,14.4,7.8,3.3,0.8,13.5,29.4,37.9,9.8,28.4,14.1,31.0,38.8,29.6,7.0,18.7,40.5,6.7,1.9,24.8,12.3,46.7,16.6,11.5,9.4,7.4,1.5,2.6,14.9,6.2,3.8,0.6,7.7,0.4,0.7,14.1,8.3,5.0,3.4,11.5,39.0,6.9,0.1,12.4,4.1,12.3,13.9,12.0,7.1,2.4,0.2,3.8,9.9,2.1,0.9,1.7,5.9,4.9,19.5,1.6,5.0,23.9,2.0,8.3,15.8,9.4,0.0,6.0,1.7,4.6,13.7,40.0,9.9,56.9,4.0,3.5,0.2,4.7,17.1,2.4,0.9,25.9,4.6,0.0,3.8,5.2,8.5,22.1,4.4,0.0,4.8,3.8,0.2,1.2,6.7,5.5,8.7,4.6,4.5,0.0,0.0,25.3,2.0,15.2,33.2,4.4,12.7,11.5,24.4,4.1,1.7,0.0,0.0,0.0,0.0,0.0,0.3,4.8,0.1,3.4,4.7,4.6,2.4,3.0,5.0,12.3,2.8,4.0,0.1,2.0,12.9,3.9,2.2,0.0,3.8,11.6,0.8,9.4,0.2,1.2,1.8,0.0,0.0,15.9,3.2,6.0,2.8,13.6,4.5,16.5,0.4,0.2,0.0,0.0,7.2,8.5,1.8,0.3,1.5,6.5,7.7,9.8,1.1,2.5,2.7,4.3,8.0,18.4,0.9,19.2,19.3,10.4,26.6,4.7,1.1,6.8,0.3,4.7,6.0,3.2,2.9,12.4,20.2,4.3,30.0,0.3,37.7,8.6,9.9,10.3,4.0,19.7,10.8,38.1,8.1,18.0,12.9,0.8,2.7,9.2,6.6,24.5,4.1,16.7,12.6,26.2,0.9,10.2,8.2,14.3,0.1,41.4,0.8,11.2,25.1,6.2,42.3,0.3,26.9,33.2,43.5,23.8,25.4,3.6,15.4,1.5,18.4,8.5,17.2,7.5,5.0,11.1,26.7,11.9,0.0,0.8,0.0,0.0,0.0,0.0,5.0,0.0,0.2,0.1,7.9,0.0,0.0,0.2,0.0,0.0,3.1,0.0,0.0,0.4,0.0,1.8,3.0,1.1,1.2,3.1,0.0,0.0,0.0,0.0,5.2,4.9,3.5,0.4,1.8,0.9,11.0,18.5,28.1,45.8,17.0,13.3,20.8,27.6,19.6,15.7,8.8,5.4,2.0,0.2,3.5,4.5,1.3,0.0,0.4,0.0,0.0,2.9,0.0,0.4,1.7,0.0,0.1,6.6,2.0,0.2,0.0,0.0,1.1,1.8,0.4,0.5,0.4,16.0,3.6,0.0,5.7,7.4,0.2,0.5,7.9,2.0,0.0,26.2,23.5,67.3,53.6,54.5,7.6,27.6,2.5,7.8,0.3,24.9,33.1,6.4,2.1,26.8,11.2,18.3,14.7,14.2,3.4,39.1,24.9,19.9,15.3,11.4,16.0,32.5,0.5,1.1,0.0,0.0,0.0,0.0,10.0,43.6,14.2,9.9,10.7,9.5,0.4,46.6,18.0,27.5,12.9,0.0,15.3,2.0,33.4,3.1,19.9,22.4,4.5,51.6,10.4,1.2,5.9,0.0,29.1,13.1,5.5,1.6,0.7,25.1,1.3,2.9,25.8,5.7,8.7,1.8,12.5,7.3,10.2,14.5,10.3,0.0,1.1,3.5,8.4,25.8,11.4,1.9,2.7,0.9,1.1,0.8,2.4,4.8,1.2,18.1,0.0,0.0,10.4,2.7,3.1,0.9,17.8,2.4,8.2,1.8,3.0,3.7,8.7,4.2,3.2,0.2,7.7,7.7,5.7,3.4,3.6,3.1,0.8,0.0,5.4,11.5,31.6,11.0,1.2,2.8,10.5,1.0,0.0,0.0,0.0,4.6,7.2,0.9,2.5,0.0,0.0,0.0,6.3,1.7,1.6,0.3,0.2,2.6,1.9,15.5,0.3,0.0,0.0,0.0,0.0,0.0,0.2,0.0,2.3,0.5,0.0,2.7,0.6,14.5,2.0,1.1,0.0,6.7,0.1,0.2,0.2,26.2,0.0,0.6,0.4,0.0,0.0,0.7,1.1,0.4,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.0,0.0,0.4,0.5,0.3,5.4,14.5,2.0,0.0,0.0,0.0,1.0,1.6,1.5,10.8,1.8,0.9,0.0,0.0,0.0,0.0,0.0,0.0,0.2,3.2,7.8,5.5,0.0,5.6,0.0,2.5,0.1,0.0,0.4,5.5,0.0,0.0,0.0,0.0,3.8,0.0,1.9,0.2,3.7,3.1,0.0,0.0,13.8,7.0,13.1,0.0,0.0,0.0,0.0,0.0,0.0,4.3,12.9,3.7,54.6,23.6,5.7,18.6,1.1,2.9,9.4,1.5,18.8,21.0,6.7,0.0,8.0,14.1,19.1,15.2,34.6,28.2,5.3,0.3,0.0,8.6,24.2,26.1,18.2,22.8,2.0,3.9,3.2,10.5,21.7,2.3,1.4,19.3,5.7,32.0,10.3,26.3,0.3,0.0,4.2,0.2,3.3,2.3,24.1,1.9,2.2,31.7,2.8,6.9,5.3,3.4,46.5,3.5,6.0,1.3,2.1,9.5,8.2,4.9,30.6,11.2,11.9,7.2,3.6,3.8,10.3,2.0,2.8,7.7,12.4,5.1,2.3,4.5,9.4,1.6,0.1,0.0,0.0,0.0,0.0,0.2,0.4,0.0,0.0,0.0,0.0,0.0,10.8,4.6,0.6,11.4,16.3,12.4,24.5,0.0,1.9,0.0,1.5,11.3,21.1,3.2,0.8,0.0,15.1,3.7,12.8,5.6,0.2,0.0,0.2,3.0,5.2,12.0,10.0,22.9,0.4,0.0,2.1,14.2,33.4,27.3,21.3,7.4,2.5,8.6,0.9,0.8,0.0,0.2,3.6,5.7,0.2,0.0,1.4,0.0,0.0,0.0,0.4,33.5,11.0,1.6,1.9,8.2,3.9,1.5,9.6,9.2,3.4,15.2,4.9,12.1,8.0,5.6,0.0,10.3,18.1,40.8,28.7,1.1,9.5,4.6,6.1,5.5,15.8,37.5,19.3,37.1,4.8,29.2,18.1,18.6,1.7,12.6,28.5,0.4,1.0,3.7,5.8,3.1,0.6,8.1,12.3,14.9,47.1,7.7,24.4,17.9,9.2,5.1,1.5,6.1,1.7,2.6,0.5,3.2,0.5,0.7,0.3,0.6,0.1,2.2,0.9,0.5,6.4,10.2,10.3,17.6,0.1,0.5,1.0,8.4,11.2,21.6,7.9,5.2,0.1,14.2,2.2,10.9,5.1,0.3,0.1,17.3,3.1,10.1,0.0,3.2,1.2,0.0,0.0,0.2,3.2,3.1,0.3,9.9,0.4,0.0,3.0,1.9,39.1,6.7,11.9,13.3,1.1,0.2,1.7,15.0,22.8,23.5,0.3,0.0,7.2,32.4,14.1,30.4,1.5,0.1,1.0,0.0,0.0,0.0,0.6,1.3,0.6,4.6,2.1,41.4,4.6,7.3,7.4,0.0,0.4,2.5,0.3,1.6,0.6,6.1,25.3,4.1,1.6,0.4,0.0,0.3,0.9,0.0,0.6,2.2,0.0,0.0,3.3,0.2,7.0,13.4,0.5,0.0,0.1,0.6,7.9,0.0,3.8,0.2,9.5,6.1,0.0,0.6,0.0,24.0,27.2,5.4,0.2,1.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,1.1,1.1,0.3,22.0,5.2,2.0,3.5,1.0,0.4,1.0,0.7,7.2,4.1,0.4,7.3,22.0,8.0,0.1,0.0,2.8,4.5,7.1,0.0,0.3,0.1,30.5,11.1,10.1,25.7,0.2,29.1,30.8,29.0,2.3,3.0,0.0,0.0,0.0,1.6,0.0,0.1,0.4,5.6,0.8,2.5,14.2,0.4,1.1,5.4,9.8,20.3,7.4,14.7,11.3,16.4,18.6,13.2,8.0,0.0,44.7,6.8,1.1,4.4,5.9,8.1,6.1,8.0,9.9,13.2,13.8,14.2,15.0,20.3,57.5,0.2,0.1,0.2,8.5,10.4,4.3,1.8,8.2,5.3,7.2,14.1,27.8,10.2,20.7,4.8,0.0,0.0,0.0,0.0,0.0,0.5,0.0,0.6,0.0,4.9,1.2,16.4,1.8,0.0,0.1,33.4,2.9,1.7,0.7,0.0,0.6,0.4,8.9,11.5,45.0,0.9,6.2,2.5,4.2,0.4,1.6,1.3,2.7,2.1,11.0,14.3,9.5,18.0,11.4,12.8,10.4,5.4,27.5,12.8,13.4,5.3,22.8,1.4,0.1,12.5,4.6,18.2,0.8,0.1,2.5,0.4,16.1,12.3,7.5,1.2,0.0,0.0,4.2,20.7,5.4,16.7,18.4,0.8,14.7,4.4,9.6,9.6,5.5,0.6,7.0,24.7,23.7,33.7,4.8,15.5,18.6,16.6,14.1,0.6,12.9,10.3,2.8,6.3,9.2,40.2,43.4,3.8,19.0,23.4,14.8,10.5,17.3,16.9,28.5,0.1,0.0,0.4,1.4,15.5,1.9,0.8,8.8,7.4,45.5,14.8,4.2,33.0,4.3,4.6,17.9,36.3,22.2,10.3,27.3,0.0,9.5,21.4,7.2,8.6,5.8,20.9,12.5,2.7,15.4,1.8,15.6,0.0,0.0,0.1,9.2,35.7,55.5,11.2,35.2,1.8,12.5,21.3,11.6,28.0,57.0,28.0,46.5,56.1,18.8,47.5,2.3,41.3,9.6,13.4,4.6,7.1,0.6,1.7,14.1,9.7,13.0,25.1,2.4,10.2,11.8,5.1,17.3,13.8,13.9,0.1,0.0,8.5,0.5,19.8,9.7,5.4,18.5,4.7,15.1,5.5,21.6,4.9,4.3,0.1,4.1,20.2,10.9,57.1,0.0,6.0,10.9,3.2,6.2,0.2,0.2,3.1,37.0,0.0,9.8,19.9,17.2,9.8,6.5,12.1,9.3,14.7,21.5,9.6,1.9,0.0,5.1,4.2,0.5,0.0,10.3,0.0,0.0,0.0,4.0,15.1,0.2,0.0,0.3,6.2,2.7,0.0,0.0,0.4,0.3,4.4,9.9,3.8,0.0,5.7,4.7,1.8,0.2,0.5,3.2,0.0,0.0,0.0,6.6,1.0,0.3,11.0,6.9,0.0,0.0,3.4,3.3,1.7,24.4,0.4,10.2,0.1,19.9,6.1,10.6,9.0,0.0,3.1,0.0,0.0,2.9,1.4,7.3,12.5,17.8,1.1,0.0,0.0,1.5,6.8,7.9,0.0,0.0,2.6,1.7,0.0,0.0,0.0,3.3,8.7,17.1,2.7,13.1,1.9,0.0,0.0,2.6,17.1,5.0,14.1,16.5,0.0,2.0,0.0,0.0,0.6,0.0,5.2,0.0,0.0,1.2,0.0,16.7,22.8,3.3,27.1,35.1,27.3,9.1,11.1,15.6,4.0,29.3,8.4,0.0,7.0,35.2,2.4,16.2,2.1,0.1,23.7,0.5,0.4,18.1,7.9,19.3,0.5,0.6,10.1,12.1,32.2,5.5,26.9,9.2,21.5,1.2,0.6,0.6,0.0,4.2,4.7,6.6,18.9,0.5,0.0,0.9,34.2,40.4,6.1,47.9,22.0,17.7,18.0,11.1,13.7,6.1,23.6,5.5,26.6,3.3,9.6,0.1,0.0,0.6,0.0,2.5,0.7,4.2,0.0,0.6,5.7,5.8,11.3,8.0,0.0,10.2,25.6,8.6,22.5,11.0,14.1,19.9,0.1,0.0,0.0,0.0,3.7,0.0,0.0,0.8,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.3,0.1,0.0,0.0,0.0,0.0,4.0,36.7,57.9,0.1,1.3,0.4,6.7,0.0,0.8,1.2,6.8,0.1,13.3,39.2,1.2,3.8,2.9,13.5,0.4,3.3,0.1,2.3,24.1,53.8,7.2,3.0,28.3,15.2,6.7,0.2,0.0,0.0,0.0,1.1,1.1,1.2,0.0,2.7,0.1,45.4,0.9,4.9,1.0,0.0,1.4,0.8,11.8,22.3,27.3,4.7,18.6,0.7,2.8,0.5,0.1,0.0,0.1,14.7,1.5,4.2,42.8,29.9,30.1,4.7,19.2,8.4,13.3,1.3,12.8,39.4,26.5,25.6,24.1,46.4,49.6,9.9,4.2,10.9,35.2,6.3,19.7,12.4,48.2,7.8,5.9,0.1,0.0,0.0,14.5,10.5,6.5,19.8,24.0,16.0,11.0,21.3,21.6,1.5,0.8,0.0,2.9,13.4,28.1,0.1,5.5,14.0,16.4,22.4,17.2,15.3,25.1,12.8,9.0,4.3,19.5,30.2,18.2,3.3,40.4,3.8,17.0,0.7,17.4,13.2,11.8,3.6,1.5,6.0,0.1,0.5,0.5,0.2,0.2,3.4,3.5,0.9,7.5,0.4,0.0,0.2,4.8,5.8,1.0,2.3,0.4,0.5,0.8,0.0,0.5,0.0,0.0,8.7,8.4,1.2,4.1,0.0,0.2,0.0,0.0,0.0,0.0,4.5,0.0,1.5,0.1,0.4,1.0,1.2,2.4,1.2,0.2,0.9,3.2,0.8,7.7,6.7,2.0,0.8,1.0,0.2,0.0,0.2,1.0,0.3,0.2,0.2,0.1,0.1,0.0,0.0,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.9,0.1,0.0,0.0,0.5,4.6,0.2,2.5,2.5,0.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,20.8,1.4,0.2,0.0,0.0,0.0,0.0,0.0,0.0,0.4,6.3,0.0,0.0,0.0,0.1,0.1,0.2,0.0,0.0,0.0,0.0,1.2,0.0,0.0,8.4,8.7,2.3,0.8,0.0,0.0,1.8,9.4,4.9],"par":[1114.2765424864313,1.5626951508934677,47.717098815274,0.5462255925956542],"kp":1.1467212782790226,"area":1920.68,"climP":[6.45,7.32,12.22,15.96,11.84,7.65,5.49,4.89,4.14,7.13,11.03,7.49],"rae":{"2026-01":[135.2,155],"2026-02":[135.2,140],"2026-03":[130.0,149],"2026-04":[161.3,179],"2026-05":[148.3,170],"2026-06":[115.4,128],"2026-07":[112.5,129],"2026-08":[112.5,129],"2026-09":[76.6,85],"2026-10":[69.8,80],"2026-11":[144.2,160],"2026-12":[143.9,165],"2027-01":[102.9,118],"2027-02":[123.6,128],"2027-03":[123.9,142],"2027-04":[123.5,137],"2027-05":[123.9,142],"2027-06":[123.5,137],"2027-07":[123.9,142],"2027-08":[123.9,142],"2027-09":[123.5,137],"2027-10":[123.9,142],"2027-11":[123.5,137],"2027-12":[143.9,165],"2028-01":[112.5,129],"2028-02":[90.4,97],"2028-03":[82.0,94],"2028-04":[128.9,143],"2028-05":[129.1,148],"2028-06":[100.0,111],"2028-07":[104.7,120],"2028-08":[104.7,120],"2028-09":[108.2,120],"2028-10":[104.7,120],"2028-11":[108.2,120],"2028-12":[130.8,150],"2029-01":[130.8,150],"2029-02":[132.3,137],"2029-03":[151.8,174],"2029-04":[162.2,180],"2029-05":[137.8,158],"2029-06":[108.2,120],"2029-07":[104.7,120],"2029-08":[104.7,120],"2029-09":[108.2,120],"2029-10":[104.7,120],"2029-11":[108.2,120],"2029-12":[130.8,150],"2030-01":[130.8,150],"2030-02":[132.3,137],"2030-03":[130.8,150],"2030-04":[156.8,174],"2030-05":[157.0,180],"2030-06":[142.4,158],"2030-07":[104.7,120],"2030-08":[104.7,120],"2030-09":[108.2,120],"2030-10":[104.7,120],"2030-11":[108.2,120],"2030-12":[104.7,120]},"curveH":[505,509,510,511,512,513],"curveS":[0.0961,1328.173,1681.48,2041.431,2405.237,2775.23],"snapshot":{"start":"2026-01-01","tma":[511.537,511.547,511.577,511.597,511.637,511.662,511.662,511.652,511.632,511.612,511.592,511.562,511.537,511.512,511.492,511.472,511.447,511.427,511.402,511.382,511.357,511.327,511.297,511.262,511.227,511.197,511.172,511.162,511.182,511.247,511.247,511.237,511.222,511.207,511.192,511.172,511.157,511.142,511.127,511.127,511.162,511.162,511.152,511.142,511.142,511.132,511.112,511.087,511.067,511.067,511.117,511.122,511.117,511.137,511.137,511.132,511.117,511.102,511.077,511.047,511.007,510.967,510.932,510.902,510.867,510.837,510.837,510.827,510.802,510.767,510.732,510.697,510.667,510.667,510.702,510.732,510.732,510.752,510.752,510.752,510.747,510.737,510.727,510.717,510.707,510.697,510.687,510.687,510.717,510.772,510.802,510.802,510.807,510.827,510.837,510.857,510.887,510.967,511.037,511.082,511.192,511.312,511.342,511.337,511.337,511.372,511.372,511.372,511.372,511.392,511.402,511.412,511.402,511.377,511.352,511.342,511.342,511.342,511.327,511.337,511.357,511.362,511.427,511.477,511.477,511.482,511.482,511.482,511.487,511.527,511.527,511.517,511.512,511.512,511.537,511.557,511.602,511.617,511.627,511.647,511.637,511.667,511.712,511.747,511.747,511.827,511.852,511.862,511.852,511.847,511.837,511.832,511.852,511.852,511.852,511.847,511.847,511.842,511.837,511.827,511.812,511.812,511.807,511.812,511.812,511.802,511.792,511.787,511.777,511.767,511.757,511.747,511.732,511.717,511.702,511.677,511.657,511.637,511.622,511.607,511.592,511.582,511.567,511.547,511.527,511.507,511.487,511.467,511.447,511.432,511.417,511.407,511.397,511.382,511.362,511.337,511.317,511.292,511.272,511.257,511.237,511.217,511.217,511.212,511.197,511.187,511.177,511.162,511.137,511.117,511.092,511.067,511.042,511.032,511.012,510.987,510.967,510.947,510.922,510.902,510.882,510.857,510.827,510.792,510.762,510.737,510.722,510.707,510.692,510.672,510.652,510.627,510.607,510.587,510.567,510.542,510.527,510.507,510.482,510.457,510.432,510.407,510.387,510.372,510.357,510.342,510.322,510.307,510.292,510.277,510.262,510.247,510.232,510.217,510.202,510.187,510.172,510.157,510.142,510.127,510.112,510.097,510.082,510.067,510.052,510.037,510.022,510.007,509.992,509.977,509.962,509.947,509.932,509.917,509.907,509.892,509.877,509.867,509.852,509.847,509.842,509.827,509.812,509.797,509.782,509.767,509.752,509.737,509.722,509.702,509.682,509.662,509.642,509.622,509.607,509.592,509.577,509.562,509.547,509.532,509.512,509.487,509.462,509.442,509.422,509.402,509.382,509.357,509.337,509.312,509.287,509.267,509.267,509.277,509.267,509.277,509.267,509.252,509.232,509.212,509.202,509.192,509.177,509.177,509.187,509.197,509.197,509.197,509.192],"novStart":"2026-10-06","q":[65.79,65.55,63.47,64.7,64.72,66.15,66.61,64.5,70.09,69.65,72.78,83.7,97.34,101.88,87.24,83.26,81.34,70.13,67.16,68.95,77.19,79.72,92.89,109.05,120.93,100.84,102.35,109.89,102.67,105.17,91.23,105.89,118.22,107.69,113.49,114.13,111.69,154.63,71.19,101.82,100.66,96.33,65.44,70.11,68.91,73.44,62.33,64.61,64.64,66.3,67.26],"i":[null,45.06,42.98,3.22,3.24,4.67,5.13,3.02,8.61,8.17,11.3,1.72,15.36,19.9,5.26,1.28,19.86,8.65,5.68,7.47,15.71,18.24,10.91,6.58,18.46,18.86,20.71,28.03,20.81,2.85,9.37,3.57,15.9,25.83,113.49,155.06,70.76,195.56,30.26,40.49,18.8,14.47,24.51,29.18,7.52,73.44,103.26,105.54,64.64,66.3,46.8],"qAll":[null,138.55,150.36,138.01,132.93,141.71,124.33,147.13,137.95,170.18,161.02,139.07,171.63,168.09,158.94,134.86,142.36,158.96,142.57,153.14,126.39,145.08,174.54,174.02,179.65,169.92,154.67,130.97,101.6,111.77,118.45,111.86,103.93,107.68,107.0,109.53,125.48,123.3,126.29,128.05,146.28,141.84,135.92,141.51,131.56,127.19,122.77,155.35,163.88,140.55,142.97,177.79,174.18,173.28,178.58,151.26,168.2,178.22,154.78,163.92,216.39,216.03,186.62,164.76,177.0,157.74,195.79,171.23,191.97,188.13,178.82,174.79,148.72,104.73,124.19,100.41,94.06,76.24,75.58,77.95,74.54,72.3,74.34,75.12,99.21,118.94,126.31,115.26,122.35,111.87,133.33,135.11,123.22,133.78,120.42,147.68,138.22,163.76,155.23,159.65,154.22,165.69,179.78,198.56,209.44,176.78,184.59,206.44,181.05,197.33,182.71,171.25,177.18,189.99,220.33,159.03,171.57,186.6,203.17,200.33,175.67,169.33,149.8,159.97,170.47,152.1,160.98,136.76,126.22,148.74,153.32,144.3,121.97,137.48,150.88,150.78,137.95,202.18,199.92,157.18,182.67,179.67,181.22,147.33,186.33,173.78,140.33,153.33,168.11,162.0,164.13,179.11,179.56,143.89,128.89,118.0,123.11,104.67,108.33,119.78,115.11,110.11,106.08,105.22,110.58,113.24,117.39,97.53,130.63,111.98,115.56,117.17,124.56,120.22,122.67,155.78,134.67,140.78,111.6,139.06,112.36,113.93,121.43,130.96,128.67,127.3,135.11,144.09,131.08,102.47,115.45,90.89,90.95,104.94,112.37,134.34,121.7,138.2,120.44,100.95,114.77,156.28,142.23,143.54,118.77,92.22,81.05,91.31,130.83,109.51,125.21,136.93,134.22,81.79,108.29,137.4,123.89,112.79,123.89,109.22,99.67,142.18,165.52,187.35,149.37,137.25,92.44,92.18,94.14,114.48,104.98,120.21,106.45,103.78,93.02,118.95,73.2,103.52,125.13,123.01,122.78,119.89,105.63,84.06,69.69,69.19,95.69,71.48,67.43,68.14,71.67,77.35,74.86,74.93,75.25,69.71,70.19,69.09,67.69,64.43,63.02,62.83,63.07,66.15,75.06,66.17,64.22,65.67,64.56,63.67,64.54,83.43,64.2,66.46,64.47,64.11,63.34,64.85]}};
+const E = window.PosoEngine, MWL = E.MWL, FWL = E.FWL, DAY = 864e5;
+const BULAN = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const $ = id => document.getElementById(id);
+const T = s => Date.parse(s + 'T00:00:00Z'), iso = t => new Date(t).toISOString().slice(0, 10);
+const fmt = (v, d = 2) => v == null || isNaN(v) ? '–' : Number(v).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fd = t => { const x = new Date(t); return x.getUTCDate() + ' ' + BULAN[x.getUTCMonth()] + ' ' + x.getUTCFullYear(); };
+const lab = m => BULAN[+m.slice(5) - 1] + ' ' + m.slice(0, 4);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cv = E.makeCurve(ST.curveH, ST.curveS);
+
+// ---------- data observasi: API atau snapshot ----------
+function fromSnapshot() {
+  const s = ST.snapshot, t0 = T(s.start), rows = [];
+  const tN = T(s.novStart);
+  s.tma.forEach((h, k) => {
+    const t = t0 + k * DAY; let qv = null, iv = null;
+    if (t < tN) qv = s.qAll[k] ?? null;
+    else { const j = Math.round((t - tN) / DAY); qv = s.q[j]; iv = s.i[j]; }
+    rows.push({ t: iso(t), tma: h, q: qv, i: iv, ch: null });
+  });
+  rows.forEach((r, k) => { if (r.i == null && k && r.q != null && r.tma != null && rows[k - 1].tma != null) r.i = r.q + (cv.h2s(r.tma) - cv.h2s(rows[k - 1].tma)) / 86400; });
+  return { rows, qc: [], mode: 'snapshot' };
+}
+async function load() {
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
+    const r = await fetch(API + '&t=' + Date.now(), { signal: ctl.signal, cache: 'no-store' }); clearTimeout(to);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (!j.data || !j.data.length) throw new Error('data kosong');
+    return { rows: j.data, qc: j.qc || [], mode: 'live', meta: j.meta };
+  } catch (e) { const s = fromSnapshot(); s.err = String(e.message || e); return s; }
+}
+
+function build(obs) {
+  const rows = obs.rows.filter(r => r.tma != null);
+  const last = rows[rows.length - 1];
+  const q7 = rows.slice(-7).map(r => r.q).filter(v => v != null);
+  const i7 = rows.slice(-7).map(r => r.i).filter(v => v != null);
+  const rainExtra = {}; obs.rows.forEach(r => { if (r.ch != null) rainExtra[r.t] = r.ch; });
+  const res = E.run({ st: ST, rainExtra, h0: last.tma, tObs: last.t, qNow: q7.reduce((a, b) => a + b, 0) / q7.length, analog: 2023 });
+  const ago = rows.find(r => T(r.t) >= T(last.t) - 30 * DAY);
+  return { obs, rows, last, res, q7: q7.reduce((a, b) => a + b, 0) / q7.length, i7: i7.reduce((a, b) => a + b, 0) / i7.length, d30: ago ? last.tma - ago.tma : null, ago };
+}
+
+
+// ---------- tampilan untuk manajemen & PLN ----------
+let V, scen = 'adapt', tek = false;
+const OPT = { adapt: 'Rekomendasi: pulihkan muka air', plan: 'Sesuai rencana RAE' };
+const pS = () => T(V.res.tStart);
+const idxOf = t => Math.round((t - pS()) / DAY);
+const monthEnd = m => Date.UTC(+m.slice(0, 4), +m.slice(5), 0);
+const r10 = v => Math.round(v / 10) * 10;
+const gwh = v => Math.round(v).toLocaleString('id-ID') + ' GWh';
+function monthEnds(band) { return V.res.monthTab.map(m => { const k = idxOf(monthEnd(m.b)); return k >= 0 && k < band.p50.length ? { m: m.b, v: band.p50[k], e: band.en[k] } : null; }).filter(Boolean); }
+function info(band) {
+  const me = monthEnds(band), below = me.filter(x => x.v < MWL).length;
+  const ri = me.findIndex(x => x.v >= MWL), rec = ri < 0 ? null : me[ri].m;
+  const fallsBack = ri >= 0 && me.slice(ri + 1).some(x => x.v < MWL);
+  const k = band.p50.length - 1;
+  return { below, N: me.length, rec, fallsBack, end: band.p50[k], endDry: band.p10[k] };
+}
+function status(h) {
+  if (h < MWL) return ['red', 'Di bawah batas aman', 'Air Danau Poso di bawah batas aman'];
+  if (h < MWL + 0.3) return ['amb', 'Mendekati batas bawah', 'Air Danau Poso mendekati batas bawah'];
+  if (h <= E.FWL) return ['grn', 'Dalam batas aman', 'Air Danau Poso dalam batas aman'];
+  return ['amb', 'Di atas batas atas', 'Air Danau Poso di atas batas atas'];
+}
+function header() {
+  const { last, res, q7, i7, obs } = V, ny = res.nextYear;
+  const [cls, badge, title] = status(last.tma);
+  const A = info(res.plan), B = info(res.adapt), cm = Math.round(Math.abs(MWL - last.tma) * 100);
+  $('kick').textContent = `PLTA Poso · Kondisi air Danau Poso · data ${fd(T(last.t))}`;
+  $('badge').className = 'badge ' + cls; $('badge').lastElementChild.textContent = badge;
+  $('ttl').textContent = title;
+  const pct = Math.round(res.rain90 / res.normal90 * 100), p = [];
+  p.push(last.tma < MWL ? `Muka air sekarang ${fmt(last.tma)} m, atau <b>${cm} cm di bawah batas aman</b> (510,1 m).` : `Muka air sekarang ${fmt(last.tma)} m, ${cm} cm di atas batas aman (510,1 m).`);
+  if (pct < 70) p[0] += ` Hujan 3 bulan terakhir hanya ${pct}% dari normal.`;
+  if (last.tma < MWL) {
+    p.push(B.rec ? `Dengan <b>produksi rekomendasi</b>, muka air kembali ke batas aman sekitar <b>${lab(B.rec)}</b> bila hujan normal.` : `Bahkan dengan produksi rekomendasi, muka air belum kembali ke batas aman s.d. Desember ${ny}.`);
+    p.push(`Bila produksi <b>tetap sesuai rencana RAE</b>, muka air di bawah batas aman <b>${A.below} dari ${A.N} bulan</b> ke depan` + (A.end < MWL ? ` dan akhir ${ny} masih ${Math.round((MWL - A.end) * 100)} cm di bawah batas.` : '.'));
+  }
+  p.push(`Energi ${ny} yang aman sekitar <b>${r10(res.annual.p50).toLocaleString('id-ID')} GWh</b> bila hujan normal, atau ${r10(res.annual.p10).toLocaleString('id-ID')} GWh bila tahun kering. Rencana RAE: ${gwh(res.annual.plan)}.`);
+  $('sum').innerHTML = p.map(x => `<p>${x}</p>`).join('');
+  const d = i7 - q7, perWeek = d * 7 * 86400 / (cv.h2s(last.tma + 0.01) - cv.h2s(last.tma)); // cm per minggu
+  const flow = Math.abs(d) < 5 ? 'hampir seimbang, muka air tertahan' : d < 0 ? `air dipakai lebih banyak, muka air turun ±${fmt(-perWeek, 0)} cm/minggu` : `air masuk lebih banyak, muka air naik ±${fmt(perWeek, 0)} cm/minggu`;
+  const k = [['Muka air danau', fmt(last.tma) + ' m', last.tma < MWL ? `<span style="color:var(--red)">${cm} cm di bawah batas aman</span>` : `${cm} cm di atas batas aman`],
+    ['Air masuk / dipakai (7 hari)', `${fmt(i7, 0)} / ${fmt(q7, 0)} m³/s`, flow],
+    [`Energi ${ny} yang aman`, `±${r10(res.annual.p50).toLocaleString('id-ID')} GWh`, `rencana RAE ${gwh(res.annual.plan)}`]];
+  $('kpis').innerHTML = k.map(([s, b, m]) => `<div class="kpi"><span>${s}</span><b>${b}</b><small>${m}</small></div>`).join('');
+  $('status').textContent = obs.mode === 'live'
+    ? `Data langsung dari Sheet "00. Input Data Hidrologi", diambil ${obs.meta.dibuat.replace('T', ' ')}.`
+    : `Memakai data tersimpan s.d. ${fd(T(last.t))} (data langsung tidak terjangkau dari halaman ini).`;
+  $('mainTtl').textContent = `Muka air Danau Poso: aktual dan perkiraan s.d. Desember ${ny}`;
+  $('monTtl').textContent = `Rekomendasi energi per bulan s.d. Desember ${ny}`;
+  $('yTtl').textContent = `Energi ${ny} per skenario hujan`;
+}
+function decide() {
+  const mt = V.res.monthTab, m = mt.find(x => x.hari >= 28) || mt[0];
+  const nd = m.hari, qn = m.p50 * E.K_ECE / nd;
+  $('decTtl').textContent = `Yang perlu diputuskan untuk ${lab(m.b)}`;
+  $('decide').innerHTML = `<span class="small">Energi rekomendasi ${lab(m.b)}</span><b class="big">${Math.round(m.p50)} GWh</b>
+  <div class="row"><div><span>Rencana RAE</span><b>${m.plan == null ? '–' : Math.round(m.plan) + ' GWh'}</b></div>
+  <div><span>Rata-rata per hari</span><b>${fmt(m.p50 / nd, 1)} GWh</b></div>
+  <div><span>Operasi puncak</span><b>±${fmt(m.jam50, 1)} jam/hari</b></div>
+  <div><span>Bila tahun kering</span><b>${Math.round(m.p10)} GWh</b></div></div>
+  <p class="small" style="margin:10px 0 0">Pola normal PLTA Poso: puncak 6 jam/hari (rata-rata 110 m³/s). ${m.plan != null && m.p50 < m.plan ? `Rekomendasi ini ${Math.round(m.plan - m.p50)} GWh lebih rendah dari rencana RAE supaya muka air tidak turun lagi.` : ''}</p>`;
+}
+function opts() {
+  const res = V.res, ny = res.nextYear, cy = new Date(pS()).getUTCFullYear(), A = info(res.plan), B = info(res.adapt);
+  const remA = res.monthTab.filter(m => m.b.startsWith(String(cy))).reduce((s, m) => s + (m.plan || 0), 0);
+  const rb = res.monthTab.filter(m => m.b.startsWith(String(cy)));
+  const remB = [rb.reduce((s, m) => s + m.p50, 0), rb.reduce((s, m) => s + m.p10, 0)];
+  const recTxt = I => I.rec ? lab(I.rec) + (I.fallsBack ? ', lalu turun lagi' : '') : `tidak s.d. Des ${ny}`;
+  const card = (key, tag, rows) => `<button class="opt" data-k="${key}" aria-pressed="${scen === key}"><h3>${OPT[key]}</h3><p class="tag">${tag}</p><dl>${rows.map(([a, b, c]) => `<dt>${a}</dt><dd class="${c || ''}">${b}</dd>`).join('')}</dl></button>`;
+  $('opts').innerHTML =
+    card('adapt', 'Produksi diatur tiap bulan agar muka air pulih', [
+      [`Energi sisa ${cy}`, `${gwh(remB[0])} <span class="small">(${Math.round(remB[1]).toLocaleString('id-ID')})</span>`],
+      [`Energi ${ny}`, `${gwh(res.annual.p50)} <span class="small">(${Math.round(res.annual.p10).toLocaleString('id-ID')})</span>`],
+      ['Muka air kembali ke batas aman', recTxt(B), B.fallsBack ? 'bad' : 'ok'],
+      ['Bulan di bawah batas aman', `${B.below} dari ${B.N}`],
+      [`Muka air akhir ${ny}`, `${fmt(B.end)} m <span class="small">(${fmt(B.endDry)})</span>`, B.end < MWL ? 'bad' : 'ok']]) +
+    card('plan', 'Produksi persis mengikuti rencana RAE saat ini', [
+      [`Energi sisa ${cy}`, gwh(remA)],
+      [`Energi ${ny}`, gwh(res.annual.plan)],
+      ['Muka air kembali ke batas aman', recTxt(A), A.fallsBack || !A.rec ? 'bad' : 'ok'],
+      ['Bulan di bawah batas aman', `${A.below} dari ${A.N}`],
+      [`Muka air akhir ${ny}`, `${fmt(A.end)} m <span class="small">(${fmt(A.endDry)})</span>`, A.end < MWL ? 'bad' : 'ok']]);
+  document.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => { scen = b.dataset.k; opts(); drawMain(); }));
+}
+
+const sM = $('sMain'), tM = $('tMain');
+function path(arr, tf, X, Y) { let s = '', pen = false; arr.forEach((v, i) => { if (v == null) { pen = false; return; } s += (pen ? 'L' : 'M') + X(tf(i)).toFixed(1) + ',' + Y(v).toFixed(1); pen = true; }); return s; }
+function drawMain() {
+  if (!V || !sM.clientWidth) return;
+  const res = V.res, S = res[scen], p0 = pS(), prT = i => p0 + i * DAY;
+  const t1 = p0 + (S.p50.length - 1) * DAY, t0 = Math.max(T(V.rows[0].t), p0 - 300 * DAY);
+  const obs = V.rows.filter(r => T(r.t) >= t0);
+  const W = sM.clientWidth, H = sM.clientHeight, narrow = W < 560, L = narrow ? 38 : 46, R = narrow ? 10 : 110, Tp = 20, B = 28;
+  const pool = [...obs.map(r => r.tma), ...S.p50, E.FWL, MWL - 0.6, ...(tek ? [...S.p10, ...S.p90, ...S.en] : [])];
+  const yMin = Math.floor((Math.min(...pool) - 0.2) * 2) / 2, yMax = Math.ceil(Math.max(...pool, E.FWL + 0.2) * 2) / 2;
+  const X = t => L + (t - t0) / (t1 - t0) * (W - L - R), Y = v => Tp + (yMax - v) / (yMax - yMin) * (H - Tp - B);
+  let g = `<rect x="${L}" y="${Y(E.FWL)}" width="${W - L - R}" height="${Y(MWL) - Y(E.FWL)}" fill="var(--zone)"/>`;
+  g += `<text x="${W - R - 8}" y="${Y(E.FWL) + 18}" text-anchor="end" class="lb" style="fill:var(--grn)">Zona operasi aman</text>`;
+  for (let v = Math.ceil(yMin); v <= yMax; v++) g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-dasharray="2 4"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  const d0 = new Date(t0); const step = narrow ? 4 : 2;
+  for (let m = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1); m <= t1; m = Date.UTC(new Date(m).getUTCFullYear(), new Date(m).getUTCMonth() + 1, 1)) {
+    const mo = new Date(m).getUTCMonth(); if (mo % step) continue;
+    g += `<text x="${X(m)}" y="${H - 8}" text-anchor="middle">${BULAN[mo]} ${String(new Date(m).getUTCFullYear()).slice(2)}</text>`;
+  }
+  g += `<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="var(--mute)"/>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(MWL)}" y2="${Y(MWL)}" stroke="var(--red)" stroke-width="1.5"/>`;
+  g += `<line x1="${L}" x2="${W - R}" y1="${Y(E.FWL)}" y2="${Y(E.FWL)}" stroke="var(--grn)" stroke-width="1"/>`;
+  if (!narrow) { g += `<text x="${W - R + 6}" y="${Y(MWL) + 4}" style="fill:var(--red)">Batas bawah 510,1</text><text x="${W - R + 6}" y="${Y(E.FWL) + 4}" style="fill:var(--grn)">Batas atas 512,2</text>`; }
+  else { g += `<text x="${W - R - 4}" y="${Y(MWL) + 14}" text-anchor="end" style="fill:var(--red)">Batas bawah 510,1</text>`; }
+  if (tek) {
+    const up = S.p90.map((v, i) => X(prT(i)).toFixed(1) + ',' + Y(v).toFixed(1)).join(' '), dn = S.p10.map((v, i) => X(prT(i)).toFixed(1) + ',' + Y(v).toFixed(1)).reverse().join(' ');
+    g += `<polygon points="${up} ${dn}" fill="var(--fan)" opacity=".85"/>`;
+    g += `<path d="${path(S.en, prT, X, Y)}" fill="none" stroke="var(--alt)" stroke-width="2" stroke-dasharray="6 4"/>`;
+  }
+  g += `<line x1="${X(p0)}" x2="${X(p0)}" y1="${Tp - 8}" y2="${H - B}" stroke="var(--ink)" stroke-dasharray="2 3"/><text x="${X(p0) + 6}" y="${Tp + 2}" class="lb" style="fill:var(--ink)">hari ini</text>`;
+  g += `<path d="${path(S.p50, prT, X, Y)}" fill="none" stroke="var(--acc)" stroke-width="3"/>`;
+  g += `<path d="${path(obs.map(r => r.tma), i => T(obs[i].t), X, Y)}" fill="none" stroke="var(--ink)" stroke-width="3"/>`;
+  const lt = obs[obs.length - 1], n = S.p50.length - 1;
+  g += `<circle cx="${X(T(lt.t))}" cy="${Y(lt.tma)}" r="5" fill="var(--ink)" stroke="var(--bg)" stroke-width="2"/>`;
+  g += `<text x="${X(T(lt.t)) - 10}" y="${Y(lt.tma) + 4}" text-anchor="end" class="lb" style="fill:var(--ink)">${fmt(lt.tma)} m</text>`;
+  g += `<circle cx="${X(t1)}" cy="${Y(S.p50[n])}" r="4" fill="var(--acc)"/>`;
+  g += `<line id="xh" y1="${Tp}" y2="${H - B}" stroke="var(--ink)" style="display:none"/><rect id="hit" x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/>`;
+  sM.innerHTML = g;
+  const hit = sM.querySelector('#hit'), xh = sM.querySelector('#xh');
+  const move = e => {
+    const r = sM.getBoundingClientRect(), px = e.clientX - r.left, t = t0 + (px - L) / (W - L - R) * (t1 - t0);
+    const tt = T(iso(Math.round(t / DAY) * DAY)); let h = '';
+    if (tt < p0) { const o = obs.find(x => T(x.t) === tt); h = `<b>${fd(tt)}</b><br>Muka air aktual: ${o ? fmt(o.tma) + ' m' : 'tidak ada data'}`; }
+    else { const i = idxOf(tt); if (i >= S.p50.length) return; h = `<b>${fd(tt)}</b><br>Perkiraan (hujan normal): <b>${fmt(S.p50[i])} m</b><br>Bila tahun kering: ${fmt(S.p10[i])} m` + (tek ? `<br>Bila tahun basah (P90): ${fmt(S.p90[i])} m<br>Analog El Niño 2023/24: ${fmt(S.en[i])} m` : ''); }
+    xh.setAttribute('x1', X(tt)); xh.setAttribute('x2', X(tt)); xh.style.display = '';
+    tM.innerHTML = h; tM.style.display = 'block'; const tw = tM.offsetWidth; tM.style.left = Math.min(Math.max(px + 12, 0), W - tw - 4) + 'px'; tM.style.top = '8px';
+  };
+  hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { tM.style.display = 'none'; xh.style.display = 'none'; });
+  $('legend').innerHTML = `<span><i style="border-color:var(--ink)"></i>Muka air aktual</span><span><i style="border-color:var(--acc)"></i>Perkiraan: ${OPT[scen].toLowerCase()} (hujan normal)</span><span><i class="z"></i>Zona operasi aman</span>` + (tek ? `<span><i class="f"></i>Rentang P10–P90</span><span><i style="border-color:var(--alt);border-top-style:dashed"></i>Analog El Niño</span>` : '');
+  $('chartNote').textContent = `Perkiraan akhir ${res.nextYear}: ${fmt(S.p50[n])} m bila hujan normal, ${fmt(S.p10[n])} m bila tahun kering. Ketelitian perkiraan 30 hari ±0,2 m.`;
+}
+
+function tables() {
+  const res = V.res, a = res.annual, ny = res.nextYear;
+  const YB = [['Rencana RAE', a.plan, 'pl'], ['Basah (P90)', a.p90, ''], ['Normal (P50)', a.p50, ''], ['Kering (P10)', a.p10, ''], ['Analog El Niño', a.en, '']].filter(x => x[1] != null);
+  const mx = Math.max(2200, ...YB.map(x => x[1])) * 1.02;
+  $('yBars').innerHTML = YB.map(([n, v, c]) => `<div class="bar"><span>${n}</span><div class="t"><div class="${c}" style="width:${(v / mx * 100).toFixed(1)}%"></div><span class="tg" style="left:${(1669 / mx * 100).toFixed(1)}%"></span></div><b>${Math.round(v).toLocaleString('id-ID')} GWh</b></div>`).join('');
+  const rows = res.monthTab.map(r => `<tr><td>${lab(r.b)}${r.hari < 28 ? ' <span class="small">(' + r.hari + ' hari)</span>' : ''}</td><td>${r.plan == null ? '–' : Math.round(r.plan)}</td><td class="hl"><b>${Math.round(r.p50)}</b></td><td>${Math.round(r.p10)}</td><td class="tech-c">${Math.round(r.en)}</td><td class="tech-c">${fmt(r.jam50, 1)}</td><td class="tech-c">${fmt(r.jam, 1)}</td><td><span class="dot ${r.tma < MWL ? 'r' : 'g'}"></span>${fmt(r.tma)}</td></tr>`).join('');
+  const planY = res.monthTab.filter(r => r.b.startsWith(ny)).reduce((s, r) => s + (r.plan || 0), 0);
+  $('tMon').innerHTML = `<thead><tr><th>Bulan</th><th>Rencana RAE (GWh)</th><th class="hl">Rekomendasi, hujan normal (GWh)</th><th>Bila tahun kering (GWh)</th><th class="tech-c">Analog El Niño 2023/24</th><th class="tech-c">Jam puncak normal</th><th class="tech-c">Jam puncak El Niño</th><th>Muka air akhir bulan (m)</th></tr></thead><tbody>${rows}<tr class="tot"><td>Total ${ny}</td><td>${Math.round(planY).toLocaleString('id-ID')}</td><td class="hl">${Math.round(a.p50).toLocaleString('id-ID')}</td><td>${Math.round(a.p10).toLocaleString('id-ID')}</td><td class="tech-c">${Math.round(a.en).toLocaleString('id-ID')}</td><td class="tech-c"></td><td class="tech-c"></td><td></td></tr></tbody>`;
+  $('monNote').innerHTML = `<span class="dot r"></span>di bawah batas aman 510,1 m · <span class="dot g"></span>aman. Muka air memakai produksi rekomendasi dan hujan normal.`;
+  const qc = V.obs.qc || [];
+  $('qcBox').innerHTML = qc.length ? `<div class="qc"><b>Cek kualitas data (30 hari terakhir)</b><br>${qc.map(x => esc(x.kolom) + ': ' + esc(x.temuan)).join('<br>')}</div>` : '';
+}
+
+const sD = $('sDay'), tD = $('tDay');
+function drawDay() {
+  if (!V || !sD.clientWidth) return;
+  const D = V.rows.slice(-50), n = D.length, W = sD.clientWidth, H = sD.clientHeight, L = 38, R = 8, Tp = 12, B = 26;
+  const ymax = Math.max(150, Math.ceil(Math.max(...D.map(r => Math.max(r.i || 0, r.q || 0))) / 50) * 50);
+  const X = i => L + i / (n - 1) * (W - L - R), Y = v => Tp + (ymax - Math.max(v, 0)) / ymax * (H - Tp - B);
+  let g = '';
+  for (let v = 0; v <= ymax; v += 50) g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  for (let i = 0; i < n; i += W < 460 ? 14 : 7) { const x = new Date(T(D[i].t)), xe = X(i), an = xe > W - R - 24 ? 'end' : xe < L + 16 ? 'start' : 'middle'; g += `<text x="${xe}" y="${H - 8}" text-anchor="${an}">${x.getUTCDate()} ${BULAN[x.getUTCMonth()]}</text>`; }
+  for (const [k, c, w] of [['q', '--ink', 1.5], ['i', '--acc', 2]]) g += `<path d="${path(D.map(r => r[k]), i => i, X, Y)}" fill="none" stroke="var(${c})" stroke-width="${w}"/>`;
+  g += `<line id="dx" y1="${Tp}" y2="${H - B}" stroke="var(--ink)" style="display:none"/><rect id="dh" x="${L - 8}" y="0" width="${W - L - R + 16}" height="${H}" fill="transparent"/>`;
+  sD.innerHTML = g; const hit = sD.querySelector('#dh'), dx = sD.querySelector('#dx');
+  const mv = e => {
+    const r = sD.getBoundingClientRect(), px = e.clientX - r.left, i = Math.max(0, Math.min(n - 1, Math.round((px - L) / (W - L - R) * (n - 1)))), d = D[i];
+    dx.setAttribute('x1', X(i)); dx.setAttribute('x2', X(i)); dx.style.display = '';
+    tD.innerHTML = `<b>${fd(T(d.t))}</b><br>Inflow: ${d.i == null ? '–' : fmt(d.i, 1) + ' m³/s'}<br>Outflow: ${d.q == null ? '–' : fmt(d.q, 1) + ' m³/s'}<br>TMA: ${fmt(d.tma, 3)} m${d.ch != null ? '<br>Hujan DAS: ' + fmt(d.ch, 1) + ' mm' : ''}`;
+    tD.style.display = 'block'; const tw = tD.offsetWidth; tD.style.left = Math.min(Math.max(px + 12, 0), W - tw - 4) + 'px'; tD.style.top = '8px';
+  };
+  hit.addEventListener('pointermove', mv); hit.addEventListener('pointerdown', mv); hit.addEventListener('pointerleave', () => { tD.style.display = 'none'; dx.style.display = 'none'; });
+  $('dayTtl').textContent = `Air masuk dan keluar, ${fd(T(D[0].t)).slice(0, -5)} – ${fd(T(D[n - 1].t))}`;
+}
+
+function setMode(t) {
+  tek = t; document.body.classList.toggle('tek', t);
+  $('mR').setAttribute('aria-pressed', !t); $('mT').setAttribute('aria-pressed', t);
+  try { localStorage.setItem('poso_mode', t ? 'tek' : 'ringkas'); } catch (e) { }
+  drawMain(); drawDay();
+}
+$('mR').addEventListener('click', () => setMode(false));
+$('mT').addEventListener('click', () => setMode(true));
+const roM = new ResizeObserver(() => drawMain()); roM.observe(sM);
+const roD = new ResizeObserver(() => drawDay()); roD.observe(sD);
+
+load().then(obs => {
+  V = build(obs);
+  let saved = false; try { saved = localStorage.getItem('poso_mode') === 'tek'; } catch (e) { }
+  header(); decide(); opts(); tables(); setMode(saved);
+}).catch(e => { $('status').textContent = 'Gagal menghitung perkiraan: ' + e.message; });
+}
+</script>
+</body>
+</html>

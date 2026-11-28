@@ -186,11 +186,19 @@ details.day>div{padding:0 14px 12px}
     <div class="btns"><button class="btn pri" type="button" id="btnPrakira">Hitung</button><button class="btn" type="button" data-reset="prakira">Reset</button></div>
   </div>
   <div id="bmkgTbl" class="card" hidden></div>
+  <div id="fcCard" class="card" hidden>
+    <h3>Prakiraan inflow &amp; elevasi dari hujan</h3>
+    <p class="sub" id="fcSub"></p>
+    <div class="f"><label for="p_out">Outflow rencana</label><div class="in"><input id="p_out" inputmode="decimal" placeholder="67.0"><span>m³/s</span></div><div class="mut" id="p_out_hint"></div></div>
+    <div id="fcTbl"></div>
+    <div class="note" id="fcNote"></div>
+  </div>
   <div id="pOut" hidden>
     <div class="res" id="pRes"></div>
     <div class="note" id="pNote"></div>
     <div class="card"><h3>Teks laporan</h3><pre class="rep" id="pRep"></pre><div class="btns" data-share="pRep"></div></div>
   </div>
+  <div class="card"><h3>Proyeksi bulanan &amp; tahunan</h3><p class="sub">Muka air dan energi sampai akhir tahun depan, dibandingkan dengan rencana RAE.</p><div class="btns"><a class="btn" href="proyeksi.html">Buka proyeksi RAE →</a></div></div>
 </section>
 
 <!-- ================= SIMULASI ================= -->
@@ -295,7 +303,7 @@ const renderDays=()=>{
    <div class="grp">Catchment Area Danau</div><div class="grid2">${ST.filter(s=>s.ca).map(s=>rainField(`p_r${i}_${s.k}`,s,0)).join('')}</div>
    <div class="grp">Hilir Sungai Poso</div><div class="grid2">${ST.filter(s=>!s.ca).map(s=>rainField(`p_r${i}_${s.k}`,s,0)).join('')}</div>
   </div></details>`).join('');
-  restore($('pDays'));if(bmkg)applyBmkg(false);
+  restore($('pDays'));if(bmkg){applyBmkg(false);fcSoon()}
 };
 
 /* restore & autosave semua input */
@@ -305,7 +313,7 @@ document.addEventListener('input',e=>{const el=e.target;if(!el.id)return;store[e
   if(el.dataset.cm){const v=num(el.value),c=$(el.dataset.cm);c.value=isNaN(v)?'':fx(v/100+K.DATUM,3);store[c.id]=c.value}
   el.classList.remove('bad','auto','partial');const er=$(el.id.replace(/_cm$/,'')+'_e');if(er)er.textContent='';save();
   if(el.type==='date')dateLbl(el.id);
-  if(el.id.startsWith('e_'))estCalc();scheduleLive(el);});
+  if(el.id.startsWith('e_'))estCalc();if(bmkg&&!fcFilling&&/^p_(e0|r\d)/.test(el.id))fcSoon();scheduleLive(el);});
 document.addEventListener('change',e=>{const el=e.target;if(!el.id)return;store[el.id]=el.type==='checkbox'?el.checked:el.value;save();
   if(el.type==='date')dateLbl(el.id);
   if(el.id==='p_n'||el.id==='p_date')renderDays();if(el.id==='h_date')loadDay(false);if(el.id==='e_conv'){$('estCoef').hidden=!el.checked;estCalc()}scheduleLive(el)});
@@ -474,7 +482,7 @@ function applyBmkg(announce){if(!bmkg)return;const SRC=bmkg.src||'BMKG',n=+$('p_
   const dates=[...new Set(bmkg.stations.flatMap(s=>s.days.map(d=>d.date)))].sort();
   $('bmkgTbl').hidden=false;$('bmkgTbl').innerHTML=`<h3>Total hujan ${SRC} per tanggal (WITA)</h3><div class="scroll"><table class="mini"><thead><tr><th>Stasiun</th>${dates.map(d=>`<th>${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}</tr></thead><tbody>${bmkg.stations.map(s=>`<tr><td>${s.name}</td>${dates.map(dt=>{const d=s.days.find(x=>x.date===dt);return `<td>${d?fx(d.rain,1)+(d.complete?'':'ᵖ'):'–'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><p class="mut" style="margin:8px 0 0">${bmkg.src==='Open-Meteo'?`mm, akumulasi 07:00–07:00 WITA (tanggal = hari mulai periode). Nilai hasil model cuaca, bukan pengukuran. Sumber: Open-Meteo (open-meteo.com), diambil ${bmkg.fetchedAt}.`:`mm, jumlah tp tiap 3 jam. ᵖ = hari parsial. Sumber: BMKG (data.bmkg.go.id), diambil ${bmkg.fetchedAt}${bmkg.cached?' (cache)':''}.`}</p>`}
 $('btnBmkg').onclick=async()=>{$('bmkgStat').textContent='Mengambil…';
-  try{bmkg=await getBmkg(false);bmkg.src='BMKG';if(!bmkg.ok)throw new Error(bmkg.error||'Semua stasiun gagal');setDot(1);$('bmkgStat').innerHTML='<span class="ok">✓ '+bmkg.fetchedAt+'</span>';applyBmkg(true)}
+  try{bmkg=await getBmkg(false);bmkg.src='BMKG';if(!bmkg.ok)throw new Error(bmkg.error||'Semua stasiun gagal');setDot(1);$('bmkgStat').innerHTML='<span class="ok">✓ '+bmkg.fetchedAt+'</span>';applyBmkg(true);runForecast()}
   catch(e){setDot(0);$('bmkgStat').textContent='';$('bmkgNote').textContent=e.message}};
 
 /* ---------- OPEN-METEO ----------
@@ -494,8 +502,67 @@ async function getOpenMeteo(){
   const fetchedAt=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Makassar',dateStyle:'short',timeStyle:'short'}).format(new Date())+' WITA';
   return{ok:stations.some(s=>!s.error&&s.days.length),src:'Open-Meteo',fetchedAt,stations}}
 $('btnOm').onclick=async()=>{$('bmkgStat').textContent='Mengambil…';
-  try{const d=await getOpenMeteo();if(!d.ok)throw new Error('Open-Meteo tidak mengirim data');bmkg=d;$('bmkgStat').innerHTML='<span class="ok">✓ Open-Meteo '+d.fetchedAt+'</span>';applyBmkg(true)}
+  try{const d=await getOpenMeteo();if(!d.ok)throw new Error('Open-Meteo tidak mengirim data');bmkg=d;$('bmkgStat').innerHTML='<span class="ok">✓ Open-Meteo '+d.fetchedAt+'</span>';applyBmkg(true);runForecast()}
   catch(e){$('bmkgStat').textContent='';$('bmkgNote').textContent=e.message}};
+
+/* ---------- PRAKIRAAN INFLOW & ELEVASI DARI HUJAN ----------
+   Hujan prakiraan (BMKG / Open-Meteo) → model hujan-limpasan Danau Poso (poso-model.js, kalibrasi 2020–2023)
+   → neraca air dengan outflow rencana. Data awal & kondisi tanah dari Sheet "00. Input Data Hidrologi". */
+const RAIN_K=0.962; // CH DAS Sheet ÷ Thiessen 5 stasiun CA (Okt 2025–Nov 2026, r = 0,999)
+let fcObs=null,fcRes=null,fcFilling=false,fcT;
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:NaN;
+function thAvail(vals){let s=0,w=0;ST.forEach((st,i)=>{if(st.ca&&!isNaN(vals[i])){s+=st.w*vals[i];w+=st.w}});return w?s/w:NaN}
+function loadModel(){if(window.PosoEngine&&window.POSO_STATIC&&window.PosoEngine.forecastDaily)return Promise.resolve();
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src='poso-model.js?v=1';s.onload=res;s.onerror=()=>rej(new Error('file model tidak bisa dimuat'));document.head.appendChild(s)})}
+async function getObs(){if(fcObs&&Date.now()-fcObs.at<6e5)return fcObs;
+  const r=await fetch(window.POSO_API+'&t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('data Sheet HTTP '+r.status);
+  const j=await r.json();if(!j.data||!j.data.length)throw new Error('data Sheet kosong');fcObs={rows:j.data,at:Date.now()};return fcObs}
+function fcSoon(){clearTimeout(fcT);fcT=setTimeout(runForecast,500)}
+async function runForecast(){if(!bmkg)return;const card=$('fcCard');card.hidden=false;$('fcNote').textContent='Menghitung prakiraan inflow & elevasi…';
+  try{await loadModel();const ob=await getObs();
+    const rows=ob.rows.filter(r=>r.tma!=null),last=rows[rows.length-1];
+    const rainExtra={};ob.rows.forEach(r=>{if(r.ch!=null)rainExtra[r.t]=r.ch});
+    const q7=avg(rows.slice(-7).map(r=>r.q).filter(v=>v!=null)),i7=avg(rows.slice(-7).map(r=>r.i).filter(v=>v!=null));
+    const n=+$('p_n').value,d0=$('p_date').value||todayISO(),e0=num($('p_e0').value),e0auto=$('p_e0').classList.contains('auto');
+    let start,h0,startTxt;
+    if(!isNaN(e0)&&e0>500&&!e0auto){start=d0;h0=e0;startTxt='elevasi hari ini yang diisi ('+fx(e0,3)+' m)'}
+    else{start=last.t;h0=last.tma;startTxt='data Sheet '+tglS(last.t)+' ('+fx(last.tma,3)+' m)'}
+    // hujan per tanggal mulai periode → model memakai tanggal akhir periode (07:00 hari berikutnya)
+    const raw={};[...new Set(bmkg.stations.flatMap(s=>s.days.map(d=>d.date)))].forEach(D=>{
+      const v=ST.map(s=>{const st=bmkg.stations.find(x=>x.key===s.k),d=st&&!st.error&&st.days.find(x=>x.date===D);return d?d.rain:NaN});
+      const a=thAvail(v);if(!isNaN(a))raw[D]=a});
+    for(let i=0;i<n;i++){const v=ST.map(s=>{const el=$(`p_r${i}_${s.k}`);return el?num(el.value):NaN});const a=thAvail(v);if(!isNaN(a))raw[addDays(d0,i)]=a}
+    const rainF={};Object.keys(raw).forEach(D=>rainF[addDays(D,1)]=raw[D]*RAIN_K);
+    const Oin=num($('p_out').value),O=isNaN(Oin)?q7:Oin;
+    $('p_out').placeholder=fx(q7,1);$('p_out_hint').textContent='Kosong = rata-rata outflow 7 hari terakhir ('+fx(q7,1)+' m³/s).';
+    const base=PosoEngine.forecastDaily({st:POSO_STATIC,rainExtra,rainF:{},startDate:last.t,h0:last.tma,O:q7,nMax:0});
+    const bias=isNaN(i7)?0:Math.max(-40,Math.min(40,i7-base.iModel7));
+    const r=PosoEngine.forecastDaily({st:POSO_STATIC,rainExtra,rainF,startDate:start,h0,O,nMax:10,bias});
+    fcRes=Object.assign(r,{src:bmkg.src||'BMKG',at:bmkg.fetchedAt,i7,bias});
+    const ds=r.days.filter(d=>d.t>start);
+    if(!ds.length)throw new Error('belum ada hujan prakiraan setelah '+tglS(start));
+    // isi elevasi otomatis (hanya kolom kosong / hasil otomatis sebelumnya)
+    fcFilling=true;
+    for(let i=0;i<n;i++){const el=$('p_e'+i),D=addDays(d0,i);if(!el||(el.value.trim()&&!el.classList.contains('auto')))continue;
+      let H=null;if(D===start)H=h0;else{const d=r.days.find(x=>x.t===D);if(d)H=d.H}
+      if(H==null&&D===last.t)H=last.tma;
+      if(H!=null){el.value=fx(H,3);el.dispatchEvent(new Event('input',{bubbles:true}));el.classList.add('auto')}}
+    fcFilling=false;
+    $('fcSub').textContent='Hujan '+fcRes.src+' → model hujan–limpasan Danau Poso → muka air dengan outflow '+fx(O,1)+' m³/s. Mulai dari '+startTxt+'.';
+    let h=h0;
+    $('fcTbl').innerHTML='<div class="scroll"><table class="mini"><thead><tr><th>Tanggal 07:00</th><th>Hujan CA*</th><th>Inflow</th><th>Elevasi</th><th>Naik/turun</th></tr></thead><tbody>'+
+      ds.map(d=>{const dh=(d.H-h)*100;h=d.H;return `<tr><td>${tglS(d.t)}</td><td>${d.src==='clim'?'~':''}${fx(d.p/RAIN_K,1)} mm</td><td>${fx(d.I,1)}</td><td>${fx(d.H,3)}</td><td>${dh>=0?'+':''}${fx(dh,1)} cm</td></tr>`}).join('')+
+      '</tbody></table></div><p class="mut" style="margin:8px 0 0">Inflow & outflow dalam m³/s, elevasi m dpl. *Hujan rata-rata catchment 24 jam sebelum jam 07:00 tanggal itu. Total '+ds.length+' hari: '+fx(ds.reduce((a,d)=>a+d.p/RAIN_K,0),1)+' mm, elevasi '+(ds[ds.length-1].H>=h0?'naik ':'turun ')+fx(Math.abs(ds[ds.length-1].H-h0)*100,1)+' cm.</p>';
+    const notes=[];
+    if(fcRes.src==='BMKG')notes.push('BMKG hanya ±3 hari ke depan; pilih Open-Meteo untuk sampai 10 hari.');
+    else if(ds.length>=7)notes.push('Hari ke-8 dst. makin tidak pasti (prakiraan hujan tropis).');
+    if(r.climDays)notes.push(r.climDays+' hari tanpa data hujan (antara data Sheet terakhir dan prakiraan) diisi rata-rata bulanan (~).');
+    notes.push('Inflow model 7 hari terakhir '+fx(base.iModel7,1)+' vs aktual '+fx(i7,1)+' m³/s; selisihnya dipakai sebagai koreksi yang memudar dalam ±5 hari.');
+    $('fcNote').textContent=notes.join(' ');
+    calcPrakira(true)
+  }catch(e){fcFilling=false;$('fcNote').textContent='Prakiraan inflow & elevasi gagal: '+e.message}}
+$('p_out').addEventListener('input',()=>{if(bmkg)fcSoon()});
+const fcLine=(D,i)=>{if(!fcRes||!$('p_e'+i).classList.contains('auto'))return '';const d=fcRes.days.find(x=>x.t===D);return d?`\nInflow Danau = ${fx(d.I,2)} m³/s`:''};
 
 /* ---------- PRAKIRAAN ---------- */
 function calcPrakira(quiet){QUIET=!!quiet;const root=$('tab-prakira');if(!quiet){clearErr(root);root.querySelectorAll('.bad').forEach(x=>x.classList.remove('bad'))}
@@ -506,7 +573,8 @@ function calcPrakira(quiet){QUIET=!!quiet;const root=$('tab-prakira');if(!quiet)
     if(useE){const es=[];for(let i=0;i<n;i++)es.push(need('p_e'+i,{elev:1}));
       caps=es.map(cap);
       text=`*Laporan Data Analisis Kondisi Hidrologi PLTA Poso*\nTanggal ${tgl(d0)}\n\nElevasi Danau = ${fx(es[0],3)} Mdpl\nCapacity Outflow = ${fx(caps[0],2)} m³/s`;
-      for(let i=1;i<n;i++)text+=`\n\nPrakiraan ${tgl(addDays(d0,i))}\nElevasi Danau = ${fx(es[i],3)} Mdpl\nCapacity Outflow = ${fx(caps[i],2)} m³/s`;
+      for(let i=1;i<n;i++)text+=`\n\nPrakiraan ${tgl(addDays(d0,i))}\nElevasi Danau = ${fx(es[i],3)} Mdpl\nCapacity Outflow = ${fx(caps[i],2)} m³/s`+fcLine(addDays(d0,i),i);
+      if(fcRes&&[...Array(n).keys()].some(i=>i>0&&$('p_e'+i).classList.contains('auto')))text+=`\n\n_Prakiraan elevasi & inflow: model hujan–limpasan, hujan ${fcRes.src} (${fcRes.at}), outflow ${fx(fcRes.O,1)} m³/s_`;
       if(es.some(e=>e<CAP_MIN))notes.push('Elevasi < '+CAP_MIN+' mdpl: di luar kurva capacity outflow (kurva berbalik naik), hasil tidak valid.');
       for(let i=1;i<n;i++)if(Math.abs(es[i]-es[i-1])>0.3)notes.push('Lompatan elevasi > 30 cm/hari di hari ke-'+(i+1)+', cek angka.')}
     if(useR){text+=(text?'\n\n':'')+'*Data Prakiraan Cuaca*';let anyAuto=false,anyPart=false;
