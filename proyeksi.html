@@ -341,11 +341,12 @@ footer{color:var(--mute);font-size:13px;border-top:1px solid var(--line);padding
       tLast = tEnd;
     }
     const tObsRain = tLast, tS = T(o.startDate), nMax = o.nMax || 10, src = {};
-    for (let t = tLast + DAY; t <= tS + nMax * DAY; t += DAY) {
+    const fk = Object.keys(fc).filter(k => fc[k] != null).sort(), tFc = fk.length ? T(fk[fk.length - 1]) : -Infinity;
+    const tEndF = Math.max(tS, Math.min(tFc, tS + nMax * DAY));
+    for (let t = tLast + DAY; t <= tEndF; t += DAY) {
       const k = iso(t);
       if (fc[k] != null) { P.push(fc[k] * 1.05); src[k] = 'fc'; }
-      else if (t <= tS) { P.push(clim(t)); src[k] = 'clim'; }
-      else break;
+      else { P.push(clim(t)); src[k] = 'clim'; }   // celah tanpa data hujan: rata-rata bulanan
       tLast = t;
     }
     const E = P.map((_, i) => oudin(t0 + i * DAY));

@@ -513,7 +513,7 @@ let fcObs=null,fcRes=null,fcFilling=false,fcT;
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:NaN;
 function thAvail(vals){let s=0,w=0;ST.forEach((st,i)=>{if(st.ca&&!isNaN(vals[i])){s+=st.w*vals[i];w+=st.w}});return w?s/w:NaN}
 function loadModel(){if(window.PosoEngine&&window.POSO_STATIC&&window.PosoEngine.forecastDaily)return Promise.resolve();
-  return new Promise((res,rej)=>{const s=document.createElement('script');s.src='poso-model.js?v=1';s.onload=res;s.onerror=()=>rej(new Error('file model tidak bisa dimuat'));document.head.appendChild(s)})}
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src='poso-model.js?v=2';s.onload=res;s.onerror=()=>rej(new Error('file model tidak bisa dimuat'));document.head.appendChild(s)})}
 async function getObs(){if(fcObs&&Date.now()-fcObs.at<6e5)return fcObs;
   const r=await fetch(window.POSO_API+'&t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('data Sheet HTTP '+r.status);
   const j=await r.json();if(!j.data||!j.data.length)throw new Error('data Sheet kosong');fcObs={rows:j.data,at:Date.now()};return fcObs}
@@ -556,11 +556,13 @@ async function runForecast(){if(!bmkg)return;const card=$('fcCard');card.hidden=
     const notes=[];
     if(fcRes.src==='BMKG')notes.push('BMKG hanya ±3 hari ke depan; pilih Open-Meteo untuk sampai 10 hari.');
     else if(ds.length>=7)notes.push('Hari ke-8 dst. makin tidak pasti (prakiraan hujan tropis).');
-    if(r.climDays)notes.push(r.climDays+' hari tanpa data hujan (antara data Sheet terakhir dan prakiraan) diisi rata-rata bulanan (~).');
+    if(r.climDays)notes.push(r.climDays+' hari tanpa data hujan (antara data Sheet terakhir dan awal prakiraan '+fcRes.src+') diisi rata-rata bulanan, ditandai ~.');
     notes.push('Inflow model 7 hari terakhir '+fx(base.iModel7,1)+' vs aktual '+fx(i7,1)+' m³/s; selisihnya dipakai sebagai koreksi yang memudar dalam ±5 hari.');
     $('fcNote').textContent=notes.join(' ');
     calcPrakira(true)
-  }catch(e){fcFilling=false;$('fcNote').textContent='Prakiraan inflow & elevasi gagal: '+e.message}}
+  }catch(e){fcFilling=false;fcRes=null;$('fcTbl').innerHTML='';
+    for(let i=1;i<+$('p_n').value;i++){const el=$('p_e'+i);if(el&&el.classList.contains('auto')){el.value='';el.dispatchEvent(new Event('input',{bubbles:true}))}}
+    $('fcNote').textContent='Prakiraan inflow & elevasi gagal: '+e.message}}
 $('p_out').addEventListener('input',()=>{if(bmkg)fcSoon()});
 const fcLine=(D,i)=>{if(!fcRes||!$('p_e'+i).classList.contains('auto'))return '';const d=fcRes.days.find(x=>x.t===D);return d?`\nInflow Danau = ${fx(d.I,2)} m³/s`:''};
 
